@@ -1,0 +1,13 @@
+{
+  "default": "local",
+  "profiles": {
+    "local": {
+      "url": "http://localhost:8529",
+      "database": "_system",
+      "auth": {
+        "username": "root",
+        "password": ""
+      }
+    }
+  }
+}
