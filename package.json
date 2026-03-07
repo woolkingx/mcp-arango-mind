@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node server.mjs",
     "start:sse": "node server.mjs --sse",
-    "test": "node --test tests/"
+    "test": "node --test tests/*.test.mjs"
   },
   "keywords": ["mcp", "arangodb", "schema-driven"],
   "license": "MIT"

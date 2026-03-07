@@ -1,0 +1,81 @@
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: Run tests
+        run: npm test
+
+      - name: Smoke test — initialize
+        run: |
+          echo '{"jsonrpc":"2.0","method":"initialize","id":1}' | timeout 5 node server.mjs | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
+              const r=JSON.parse(d);
+              if(r.result?.protocolVersion!=='2025-03-26') process.exit(1);
+              console.log('initialize OK');
+            })"
+
+      - name: Smoke test — tools/list count
+        run: |
+          echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | timeout 5 node server.mjs | node -e "
+            let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
+              const r=JSON.parse(d);
+              if(!r.result?.tools?.length||r.result.tools.length<200) process.exit(1);
+              console.log('tools/list OK:', r.result.tools.length, 'tools');
+            })"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Check syntax (all .mjs files parse)
+        run: |
+          for f in *.mjs transports/*.mjs lib/*.mjs; do
+            node --check "$f" && echo "OK: $f" || exit 1
+          done
+
+      - name: Check no npm dependencies needed
+        run: |
+          if [ -d node_modules ]; then
+            echo "ERROR: node_modules should not exist"
+            exit 1
+          fi
+          node -e "
+            import './bus.mjs'
+            import './pool.mjs'
+            import './log.mjs'
+          " && echo "No dependencies needed"
+
+      - name: Check file sizes (max 300 lines)
+        run: |
+          for f in bus.mjs pool.mjs log.mjs dispatch.mjs protocol.mjs core.mjs server.mjs transports/stdio.mjs transports/sse.mjs; do
+            lines=$(wc -l < "$f")
+            if [ "$lines" -gt 300 ]; then
+              echo "ERROR: $f has $lines lines (max 300)"
+              exit 1
+            fi
+            echo "OK: $f ($lines lines)"
+          done
