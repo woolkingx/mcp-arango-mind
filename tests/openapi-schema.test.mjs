@@ -6,7 +6,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { ObjectTree } from '../lib/schema2object.mjs'
 import { createBus } from '../bus.mjs'
-import { createPool } from '../pool.mjs'
+import { createConnection } from '../connection.mjs'
 import { createDispatch } from '../dispatch.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -21,8 +21,8 @@ function mcpDef(name) {
 
 function makeDispatch() {
   const bus = createBus()
-  const pool = createPool({ url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } })
-  return createDispatch(bus, pool, openapiSpec)
+  const conn = createConnection({ url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } })
+  return createDispatch(bus, conn, openapiSpec)
 }
 
 describe('OpenAPI Tool Generation', () => {

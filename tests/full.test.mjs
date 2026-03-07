@@ -22,10 +22,13 @@ function withMockFetch(handler, fn) {
   const original = globalThis.fetch
   globalThis.fetch = async (url, opts) => {
     const result = await handler(url, opts)
+    const status = result.status || 200
     return {
-      status: result.status || 200,
+      status,
       json: async () => result.data,
-      ok: (result.status || 200) < 400
+      text: async () => JSON.stringify(result.data),
+      ok: status < 400,
+      headers: new Headers({ 'content-type': 'application/json' })
     }
   }
   return fn().finally(() => { globalThis.fetch = original })

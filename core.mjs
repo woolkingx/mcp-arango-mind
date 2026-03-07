@@ -1,7 +1,7 @@
 // core.mjs — Assembles components, exposes handle(msg) → response
 
 import { createBus } from './bus.mjs'
-import { createPool } from './pool.mjs'
+import { createConnection } from './connection.mjs'
 import { createLogger } from './log.mjs'
 import { createDispatch } from './dispatch.mjs'
 import { createProtocol } from './protocol.mjs'
@@ -10,9 +10,9 @@ export function createCore(config) {
   const { profile, mcpSchema, openapiSpec, debug, auditFile } = config
 
   const bus = createBus()
-  const pool = createPool(profile)
+  const conn = createConnection(profile)
   createLogger(bus, { auditFile, debug })
-  const { getToolList, getResourceList, getCategories, getToolHelp } = createDispatch(bus, pool, openapiSpec)
+  const { getToolList, getResourceList, getCategories, getToolHelp } = createDispatch(bus, conn, openapiSpec)
   createProtocol(bus, mcpSchema, {
     toolList: getToolList(),
     resourceList: getResourceList(),
@@ -35,7 +35,7 @@ export function createCore(config) {
   }
 
   function close() {
-    pool.close()
+    conn.close()
   }
 
   return { handle, close }

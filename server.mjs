@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import { createCore } from './core.mjs'
+import { loadEnv, resolveProfile } from './env.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -22,19 +23,23 @@ const host = getArg('--host') || '127.0.0.1'
 const profileName = getArg('--profile')
 const auditFile = getArg('--audit')
 
+// Load .env → process.env
+loadEnv()
+
 // Load config files
 const configDir = join(__dirname, 'config')
 const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
 const openapiSpec = JSON.parse(readFileSync(join(configDir, 'arango-openapi.json'), 'utf8'))
 const profilesConfig = JSON.parse(readFileSync(join(configDir, 'profiles.json'), 'utf8'))
 
-// Resolve profile
+// Resolve profile: .env > profiles.json > schema defaults
 const name = profileName || profilesConfig.default
-const profile = profilesConfig.profiles[name]
-if (!profile) {
+const baseProfile = profilesConfig.profiles[name]
+if (!baseProfile) {
   process.stderr.write(`Profile "${name}" not found\n`)
   process.exit(1)
 }
+const profile = resolveProfile(baseProfile)
 
 // Create core
 const core = createCore({ profile, mcpSchema, openapiSpec, debug, auditFile })

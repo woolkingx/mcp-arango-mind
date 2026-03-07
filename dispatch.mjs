@@ -50,7 +50,7 @@ function buildQuery(queryParams) {
   return '?' + entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
 }
 
-export function createDispatch(bus, pool, openapiSpec) {
+export function createDispatch(bus, conn, openapiSpec) {
   const operations = new Map()
 
   // --- Build operation lookup table ---
@@ -231,7 +231,7 @@ export function createDispatch(bus, pool, openapiSpec) {
     // Assemble URL
     const path = buildPath(op.pathTemplate, pathValues) + buildQuery(queryValues)
 
-    const result = await pool.fetch(op.method, path, { headers, body })
+    const result = await conn.request(op.method, path, { headers, body })
     return result
   })
 

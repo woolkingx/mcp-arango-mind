@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { createBus } from '../bus.mjs'
-import { createPool } from '../pool.mjs'
+import { createConnection } from '../connection.mjs'
 import { createDispatch } from '../dispatch.mjs'
 import { createProtocol } from '../protocol.mjs'
 
@@ -14,18 +14,18 @@ const configDir = join(__dirname, '..', 'config')
 const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
 const openapiSpec = JSON.parse(readFileSync(join(configDir, 'arango-openapi.json'), 'utf8'))
 
-function setup(mockFetch) {
+function setup(mockRequest) {
   const bus = createBus()
-  const pool = createPool({
+  const conn = createConnection({
     url: 'http://localhost:8529', database: '_system',
     auth: { username: 'root', password: '' }
   })
-  // Replace pool.fetch with mock
-  pool.fetch = mockFetch
+  // Replace conn.request with mock
+  conn.request = mockRequest
   // Capture log messages
   const logs = []
   bus.handle('log', (msg) => logs.push(msg))
-  const d = createDispatch(bus, pool, openapiSpec)
+  const d = createDispatch(bus, conn, openapiSpec)
   createProtocol(bus, mcpSchema, {
     toolList: d.getToolList(),
     resourceList: d.getResourceList(),
