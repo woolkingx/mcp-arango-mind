@@ -102,22 +102,84 @@ export function createDispatch(bus, pool, openapiSpec) {
         headerParams,
         bodySchema,
         summary: op.summary || '',
-        description: op.description || ''
+        description: op.description || '',
+        tags: op.tags || [],
+        responses: op.responses || {}
       })
     }
   }
 
-  // --- getToolList: MCP Tool objects for tools/list ---
+  // --- getToolList: MCP Tool objects for tools/list (with tag prefix) ---
   function getToolList() {
     const tools = []
     for (const [name, op] of operations) {
+      const tag = op.tags[0] || 'Other'
+      const summary = (op.summary || op.description || name).trim()
       tools.push({
         name,
-        description: (op.summary || op.description || name).trim(),
+        description: `[${tag}] ${summary}`,
         inputSchema: buildInputSchema(op)
       })
     }
     return tools
+  }
+
+  // --- Resources: tool help as MCP resources ---
+  function getResourceList() {
+    const resources = []
+    // Category overview
+    resources.push({
+      uri: 'tool://categories',
+      name: 'Tool Categories',
+      description: 'All tools grouped by API domain',
+      mimeType: 'application/json'
+    })
+    // Per-tool help
+    for (const [name, op] of operations) {
+      const tag = op.tags[0] || 'Other'
+      resources.push({
+        uri: `tool://help/${name}`,
+        name: `${name}`,
+        description: `[${tag}] ${op.summary || name}`,
+        mimeType: 'application/json'
+      })
+    }
+    return resources
+  }
+
+  function getCategories() {
+    const cats = {}
+    for (const [name, op] of operations) {
+      const tag = op.tags[0] || 'Other'
+      if (!cats[tag]) cats[tag] = []
+      cats[tag].push({ name, method: op.method, path: op.pathTemplate, summary: op.summary })
+    }
+    return cats
+  }
+
+  function getToolHelp(toolName) {
+    const op = operations.get(toolName)
+    if (!op) return null
+    const help = {
+      name: toolName,
+      tag: op.tags[0] || 'Other',
+      summary: op.summary,
+      description: op.description,
+      http: { method: op.method, path: op.pathTemplate },
+      parameters: op.parameters.map(p => ({
+        name: p.name, in: p.in, required: !!p.required,
+        type: p.schema?.type, description: p.description?.trim()
+      })),
+    }
+    if (op.bodySchema) {
+      help.requestBody = op.bodySchema
+    }
+    // Extract response schema from first success status
+    for (const status of ['200', '201', '202']) {
+      const schema = op.responses[status]?.content?.['application/json']?.schema
+      if (schema) { help.responseSchema = schema; break }
+    }
+    return help
   }
 
   // --- Bus handler: route tool call → HTTP request ---
@@ -173,5 +235,5 @@ export function createDispatch(bus, pool, openapiSpec) {
     return result
   })
 
-  return { getToolList, operations }
+  return { getToolList, getResourceList, getCategories, getToolHelp, operations }
 }

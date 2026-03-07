@@ -12,9 +12,13 @@ export function createCore(config) {
   const bus = createBus()
   const pool = createPool(profile)
   createLogger(bus, { auditFile, debug })
-  const { getToolList } = createDispatch(bus, pool, openapiSpec)
-  const toolList = getToolList()
-  createProtocol(bus, mcpSchema, toolList)
+  const { getToolList, getResourceList, getCategories, getToolHelp } = createDispatch(bus, pool, openapiSpec)
+  createProtocol(bus, mcpSchema, {
+    toolList: getToolList(),
+    resourceList: getResourceList(),
+    getCategories,
+    getToolHelp
+  })
 
   async function handle(message) {
     try {

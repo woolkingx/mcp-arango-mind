@@ -87,4 +87,56 @@ describe('MCP Schema Conformance', () => {
       assert.equal(res.id, id)
     }
   })
+
+  it('initialize capabilities include resources', async () => {
+    const core = makeCore()
+    const res = await core.handle({ jsonrpc: '2.0', method: 'initialize', id: 10 })
+    assert.ok(res.result.capabilities.resources)
+  })
+
+  it('resources/list response matches ListResourcesResult schema', async () => {
+    const core = makeCore()
+    const res = await core.handle({ jsonrpc: '2.0', method: 'resources/list', id: 11 })
+    assert.equal(res.jsonrpc, '2.0')
+    assert.ok(res.result)
+    const tree = new ObjectTree(res.result, mcpDef('ListResourcesResult'))
+    assert.ok(Array.isArray(tree.resources))
+    assert.ok(tree.resources.length > 200)
+  })
+
+  it('resources/read categories returns valid content', async () => {
+    const core = makeCore()
+    const res = await core.handle({ jsonrpc: '2.0', method: 'resources/read', id: 12, params: { uri: 'tool://categories' } })
+    assert.equal(res.jsonrpc, '2.0')
+    assert.ok(res.result.contents)
+    assert.equal(res.result.contents[0].mimeType, 'application/json')
+    const cats = JSON.parse(res.result.contents[0].text)
+    assert.ok(Object.keys(cats).length > 10, 'Should have 10+ categories')
+  })
+
+  it('resources/read tool help returns structured data', async () => {
+    const core = makeCore()
+    const res = await core.handle({ jsonrpc: '2.0', method: 'resources/read', id: 13, params: { uri: 'tool://help/createAqlQueryCursor' } })
+    assert.ok(res.result.contents)
+    const help = JSON.parse(res.result.contents[0].text)
+    assert.equal(help.name, 'createAqlQueryCursor')
+    assert.ok(help.tag)
+    assert.ok(help.http.method)
+    assert.ok(help.http.path)
+    assert.ok(help.parameters)
+  })
+
+  it('resources/read unknown tool returns error', async () => {
+    const core = makeCore()
+    const res = await core.handle({ jsonrpc: '2.0', method: 'resources/read', id: 14, params: { uri: 'tool://help/nonexistent' } })
+    assert.ok(res.error)
+  })
+
+  it('tools/list descriptions have tag prefix', async () => {
+    const core = makeCore()
+    const res = await core.handle({ jsonrpc: '2.0', method: 'tools/list', id: 15 })
+    for (const tool of res.result.tools.slice(0, 10)) {
+      assert.match(tool.description, /^\[.+\]/, `Tool ${tool.name} should have [Tag] prefix`)
+    }
+  })
 })

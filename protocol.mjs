@@ -8,7 +8,8 @@ function jsonrpcError(id, code, message) {
   return { jsonrpc: '2.0', id, error: { code, message } }
 }
 
-export function createProtocol(bus, mcpSchema, toolList) {
+export function createProtocol(bus, mcpSchema, dispatch) {
+  const { toolList, resourceList, getCategories, getToolHelp } = dispatch
 
   bus.handle('validate', (msg) => {
     if (msg.jsonrpc !== '2.0') {
@@ -27,7 +28,10 @@ export function createProtocol(bus, mcpSchema, toolList) {
       case 'initialize':
         return jsonrpcResult(id, {
           protocolVersion: '2025-03-26',
-          capabilities: { tools: { listChanged: false } },
+          capabilities: {
+            tools: { listChanged: false },
+            resources: { listChanged: false }
+          },
           serverInfo: { name: 'mcp-arango-mind', version: '1.0.0' }
         })
 
@@ -36,6 +40,33 @@ export function createProtocol(bus, mcpSchema, toolList) {
 
       case 'tools/list':
         return jsonrpcResult(id, { tools: toolList })
+
+      case 'resources/list':
+        return jsonrpcResult(id, { resources: resourceList })
+
+      case 'resources/read': {
+        const uri = params?.uri
+        if (!uri) return jsonrpcError(id, -32602, 'Missing uri param')
+
+        if (uri === 'tool://categories') {
+          const text = JSON.stringify(getCategories(), null, 2)
+          return jsonrpcResult(id, {
+            contents: [{ uri, mimeType: 'application/json', text }]
+          })
+        }
+
+        const helpMatch = uri.match(/^tool:\/\/help\/(.+)$/)
+        if (helpMatch) {
+          const help = getToolHelp(helpMatch[1])
+          if (!help) return jsonrpcError(id, -32602, `Unknown tool: ${helpMatch[1]}`)
+          const text = JSON.stringify(help, null, 2)
+          return jsonrpcResult(id, {
+            contents: [{ uri, mimeType: 'application/json', text }]
+          })
+        }
+
+        return jsonrpcError(id, -32602, `Unknown resource: ${uri}`)
+      }
 
       case 'tools/call': {
         const name = params.name

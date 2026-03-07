@@ -25,8 +25,13 @@ function setup(mockFetch) {
   // Capture log messages
   const logs = []
   bus.handle('log', (msg) => logs.push(msg))
-  const { getToolList } = createDispatch(bus, pool, openapiSpec)
-  createProtocol(bus, mcpSchema, getToolList())
+  const d = createDispatch(bus, pool, openapiSpec)
+  createProtocol(bus, mcpSchema, {
+    toolList: d.getToolList(),
+    resourceList: d.getResourceList(),
+    getCategories: d.getCategories,
+    getToolHelp: d.getToolHelp
+  })
   return { bus, logs }
 }
 
