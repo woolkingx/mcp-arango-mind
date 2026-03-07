@@ -1,0 +1,318 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "description": "ArangoDB connection configuration and response schemas. Ported from arangojs TypeScript types (configuration.ts, connection.ts, errors.ts) to JSON Schema for runtime validation via schema2object.",
+  "definitions": {
+    "BasicAuthCredentials": {
+      "description": "Credentials for HTTP Basic authentication.",
+      "type": "object",
+      "properties": {
+        "username": {
+          "description": "Username to use for authentication, e.g. \"root\".",
+          "type": "string",
+          "default": "root"
+        },
+        "password": {
+          "description": "Password to use for authentication.",
+          "type": "string",
+          "default": ""
+        }
+      },
+      "required": ["username"]
+    },
+    "BearerAuthCredentials": {
+      "description": "Credentials for HTTP Bearer token authentication.",
+      "type": "object",
+      "properties": {
+        "token": {
+          "description": "Bearer token to use for authentication.",
+          "type": "string"
+        }
+      },
+      "required": ["token"]
+    },
+    "AuthCredentials": {
+      "description": "Authentication credentials — either Basic (username/password) or Bearer (token).",
+      "oneOf": [
+        { "$ref": "#/definitions/BasicAuthCredentials" },
+        { "$ref": "#/definitions/BearerAuthCredentials" }
+      ]
+    },
+    "LoadBalancingStrategy": {
+      "description": "Determines the behavior when multiple URLs are used. NONE: sticky to first URL until network error. ONE_RANDOM: random pick initially, then like NONE. ROUND_ROBIN: each request uses next URL.",
+      "type": "string",
+      "enum": ["NONE", "ROUND_ROBIN", "ONE_RANDOM"],
+      "default": "NONE"
+    },
+    "ConnectionConfig": {
+      "description": "Full connection configuration. Ported from arangojs ConfigOptions + CommonRequestOptions.",
+      "type": "object",
+      "properties": {
+        "url": {
+          "description": "Base URL of the ArangoDB server or list of server URLs. Supports http://, https://, tcp://, ssl://, tls:// schemes.",
+          "oneOf": [
+            { "type": "string", "format": "uri" },
+            { "type": "array", "items": { "type": "string", "format": "uri" }, "minItems": 1 }
+          ],
+          "default": "http://127.0.0.1:8529"
+        },
+        "database": {
+          "description": "Name of the database to use.",
+          "type": "string",
+          "default": "_system"
+        },
+        "auth": {
+          "$ref": "#/definitions/AuthCredentials",
+          "description": "Credentials to use for authentication.",
+          "default": { "username": "root", "password": "" }
+        },
+        "loadBalancing": {
+          "$ref": "#/definitions/LoadBalancingStrategy"
+        },
+        "poolSize": {
+          "description": "Maximum number of parallel requests. Excess requests are queued. When using ROUND_ROBIN with multiple URLs, default becomes 3 * url.length.",
+          "type": "integer",
+          "minimum": 1,
+          "default": 3
+        },
+        "timeout": {
+          "description": "Request timeout in milliseconds. 0 means no timeout.",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "maxRetries": {
+          "description": "Max retries on network error. 0 = retry up to host count minus 1. false = never retry.",
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "boolean", "const": false }
+          ],
+          "default": 0
+        },
+        "retryOnConflict": {
+          "description": "Max retries on write-write conflict (ArangoDB error 1200).",
+          "type": "integer",
+          "minimum": 0,
+          "default": 0
+        },
+        "allowDirtyRead": {
+          "description": "Whether to allow dirty reads from non-authoritative servers.",
+          "type": "boolean",
+          "default": false
+        },
+        "arangoVersion": {
+          "description": "Numeric ArangoDB version in XYYZZ format (e.g. 31100 for 3.11.0).",
+          "type": "integer",
+          "default": 31100
+        },
+        "responseQueueTimeSamples": {
+          "description": "Number of server-reported queue time samples to keep.",
+          "type": "integer",
+          "minimum": 0,
+          "default": 10
+        }
+      },
+      "required": ["url", "database", "auth"]
+    },
+    "RequestOptions": {
+      "description": "Per-request options that can override connection defaults.",
+      "type": "object",
+      "properties": {
+        "method": {
+          "description": "HTTP method.",
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD"],
+          "default": "GET"
+        },
+        "path": {
+          "description": "URL path relative to the database base URL.",
+          "type": "string"
+        },
+        "headers": {
+          "description": "Additional HTTP headers.",
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "body": {
+          "description": "Request body. Objects are JSON-serialized."
+        },
+        "timeout": {
+          "description": "Per-request timeout override in milliseconds.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "maxRetries": {
+          "description": "Per-request retry override.",
+          "oneOf": [
+            { "type": "integer", "minimum": 0 },
+            { "type": "boolean", "const": false }
+          ]
+        },
+        "retryOnConflict": {
+          "description": "Per-request conflict retry override.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "allowDirtyRead": {
+          "description": "Per-request dirty read override.",
+          "type": "boolean"
+        },
+        "transactionId": {
+          "description": "Transaction ID for x-arango-trx-id header.",
+          "type": "string"
+        }
+      },
+      "required": ["method", "path"]
+    },
+    "ArangoErrorResponse": {
+      "description": "ArangoDB error response body format.",
+      "type": "object",
+      "properties": {
+        "error": {
+          "description": "Always true for error responses.",
+          "type": "boolean",
+          "const": true
+        },
+        "errorNum": {
+          "description": "ArangoDB error code. See https://docs.arangodb.com/stable/develop/error-codes-and-meanings/",
+          "type": "integer"
+        },
+        "errorMessage": {
+          "description": "Human-readable error message.",
+          "type": "string"
+        },
+        "code": {
+          "description": "HTTP status code as reported by ArangoDB.",
+          "type": "integer"
+        }
+      },
+      "required": ["error", "errorNum", "errorMessage"]
+    },
+    "ArangoSuccessResponse": {
+      "description": "ArangoDB success response metadata.",
+      "type": "object",
+      "properties": {
+        "error": {
+          "description": "Always false for success responses.",
+          "type": "boolean",
+          "const": false
+        },
+        "code": {
+          "description": "HTTP response status code.",
+          "type": "integer"
+        }
+      },
+      "required": ["error", "code"]
+    },
+    "ArangoErrorCodes": {
+      "description": "Well-known ArangoDB error codes used for retry logic.",
+      "type": "object",
+      "properties": {
+        "ERROR_ARANGO_CONFLICT": {
+          "description": "Write-write conflict. Safe to retry with retryOnConflict.",
+          "const": 1200
+        },
+        "ERROR_ARANGO_MAINTENANCE_MODE": {
+          "description": "Server in maintenance mode. Safe to retry.",
+          "const": 503
+        },
+        "TRANSACTION_NOT_FOUND": {
+          "const": 10
+        },
+        "COLLECTION_NOT_FOUND": {
+          "const": 1203
+        },
+        "DOCUMENT_NOT_FOUND": {
+          "const": 1202
+        },
+        "DATABASE_NOT_FOUND": {
+          "const": 1228
+        },
+        "GRAPH_NOT_FOUND": {
+          "const": 1924
+        }
+      }
+    },
+    "NetworkErrorInfo": {
+      "description": "Structure for network-level errors.",
+      "type": "object",
+      "properties": {
+        "type": {
+          "description": "Error classification.",
+          "type": "string",
+          "enum": ["NetworkError", "ResponseTimeoutError", "FetchFailedError", "HttpError"]
+        },
+        "message": {
+          "description": "Error message.",
+          "type": "string"
+        },
+        "code": {
+          "description": "HTTP status code (for HttpError).",
+          "type": "integer"
+        },
+        "isSafeToRetry": {
+          "description": "Whether this error is safe to retry. null = unknown.",
+          "type": ["boolean", "null"]
+        }
+      },
+      "required": ["type", "message"]
+    },
+    "QueueTimeMetrics": {
+      "description": "Server-reported response queue time tracking.",
+      "type": "object",
+      "properties": {
+        "latest": {
+          "description": "Most recent queue time value.",
+          "type": "number"
+        },
+        "values": {
+          "description": "Array of [timestamp, queueTime] pairs.",
+          "type": "array",
+          "items": {
+            "type": "array",
+            "items": [
+              { "type": "number", "description": "Timestamp (ms)" },
+              { "type": "number", "description": "Queue time (seconds)" }
+            ],
+            "minItems": 2,
+            "maxItems": 2
+          }
+        },
+        "avg": {
+          "description": "Average queue time across samples.",
+          "type": "number"
+        }
+      }
+    },
+    "JwtAuthResponse": {
+      "description": "Response from POST /_open/auth for JWT login.",
+      "type": "object",
+      "properties": {
+        "jwt": {
+          "description": "JWT token string.",
+          "type": "string"
+        }
+      },
+      "required": ["jwt"]
+    },
+    "ClusterEndpointsResponse": {
+      "description": "Response from GET /_api/cluster/endpoints for host discovery.",
+      "type": "object",
+      "properties": {
+        "endpoints": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "endpoint": {
+                "description": "Coordinator endpoint URL.",
+                "type": "string"
+              }
+            },
+            "required": ["endpoint"]
+          }
+        }
+      },
+      "required": ["endpoints"]
+    }
+  }
+}
