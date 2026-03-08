@@ -1,9 +1,10 @@
 // dispatch.mjs — OpenAPI spec → HTTP dispatch engine
+import { ObjectTree } from './lib/schema2object.mjs'
 
-const DB_PREFIX = '/_db/{database-name}'
 const METHOD_VERBS = ['get', 'post', 'put', 'delete', 'patch']
 
-// Build MCP inputSchema from OpenAPI operation parameters + requestBody
+// Build merged inputSchema from OpenAPI operation parameters + requestBody
+// Returns raw JSON Schema object — ObjectTree uses it as class definition at tools/call time
 function buildInputSchema(op) {
   const properties = {}
   const required = []
@@ -14,7 +15,6 @@ function buildInputSchema(op) {
   }
 
   if (op.bodySchema) {
-    // Merge body schema properties directly into top-level
     if (op.bodySchema.properties) {
       for (const [k, v] of Object.entries(op.bodySchema.properties)) {
         properties[k] = v
@@ -23,7 +23,6 @@ function buildInputSchema(op) {
         required.push(...op.bodySchema.required)
       }
     } else {
-      // Non-object body (array, etc.) — use special `_body` key
       properties._body = op.bodySchema
       required.push('_body')
     }
@@ -50,10 +49,32 @@ function buildQuery(queryParams) {
   return '?' + entries.map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`).join('&')
 }
 
-export function createDispatch(bus, conn, openapiSpec) {
+export function createDispatch(bus, conn, openapiSpec, connSchema, localHandlers = {}) {
   const operations = new Map()
 
-  // --- Build operation lookup table ---
+  // --- Register ConnectionTools from arango-connection.json as local operations ---
+  // Each action has its own name, summary, inputSchema (with required) — read raw from schema
+  if (connSchema) {
+    const ct = connSchema.definitions?.ConnectionTools
+    if (ct) {
+      for (const action of ct.actions || []) {
+        operations.set(action.name, {
+          handler: 'local',
+          tags: [ct.categoryName],
+          summary: action.summary,
+          description: action.summary,
+          parameters: [],
+          pathParams: [],
+          queryParams: [],
+          headerParams: [],
+          bodySchema: null,
+          inputSchema: action.inputSchema
+        })
+      }
+    }
+  }
+
+  // --- Build operation lookup table from OpenAPI spec ---
   for (const [pathTemplate, methods] of Object.entries(openapiSpec.paths)) {
     for (const verb of METHOD_VERBS) {
       const op = methods[verb]
@@ -62,24 +83,20 @@ export function createDispatch(bus, conn, openapiSpec) {
       const name = op.operationId
       if (!name) continue
 
-      // Strip /_db/{database-name} prefix — pool.fetch prepends baseUrl which includes it
+      // Keep full path including /_db/{database-name} — connection applies default
       let httpPath = pathTemplate
-      if (httpPath.startsWith(DB_PREFIX)) {
-        httpPath = httpPath.slice(DB_PREFIX.length)
-      }
 
       // Strip #fragment from path (OpenAPI uses it for variant disambiguation)
       const hashIdx = httpPath.indexOf('#')
       if (hashIdx !== -1) httpPath = httpPath.slice(0, hashIdx)
 
-      // Separate parameters by `in` field, skip database-name (handled by pool)
+      // Separate parameters by `in` field
       const pathParams = []
       const queryParams = []
       const headerParams = []
       const allParams = []
 
       for (const p of op.parameters || []) {
-        if (p.name === 'database-name') continue
         allParams.push(p)
         if (p.in === 'path') pathParams.push(p)
         else if (p.in === 'query') queryParams.push(p)
@@ -93,7 +110,7 @@ export function createDispatch(bus, conn, openapiSpec) {
         bodySchema = bodyContent.schema
       }
 
-      operations.set(name, {
+      const entry = {
         method: verb.toUpperCase(),
         pathTemplate: httpPath,
         parameters: allParams,
@@ -104,24 +121,53 @@ export function createDispatch(bus, conn, openapiSpec) {
         summary: op.summary || '',
         description: op.description || '',
         tags: op.tags || [],
-        responses: op.responses || {}
-      })
+        responses: op.responses || {},
+      }
+      entry.inputSchema = buildInputSchema(entry)
+      operations.set(name, entry)
     }
   }
 
-  // --- getToolList: MCP Tool objects for tools/list (with tag prefix) ---
+  // --- Build category index once ---
+  const categoryIndex = new Map()
+  for (const [name, op] of operations) {
+    const tag = op.tags[0] || 'Other'
+    if (!categoryIndex.has(tag)) categoryIndex.set(tag, [])
+    categoryIndex.get(tag).push(name)
+  }
+
+  // --- Category-level tool list: 22 categories, each with action enum ---
   function getToolList() {
     const tools = []
-    for (const [name, op] of operations) {
-      const tag = op.tags[0] || 'Other'
-      const summary = (op.summary || op.description || name).trim()
+    for (const [tag, names] of categoryIndex) {
+      const summaries = names.map(n => `${n}: ${operations.get(n).summary}`)
       tools.push({
-        name,
-        description: `[${tag}] ${summary}`,
-        inputSchema: buildInputSchema(op)
+        name: tag,
+        description: `${names.length} tools: ${summaries.join(', ')}`,
+        inputSchema: {
+          type: 'object',
+          properties: {
+            action: {
+              type: 'string',
+              enum: names,
+              description: 'Action to execute. Omit to list available actions.'
+            }
+          }
+        }
       })
     }
     return tools
+  }
+
+  // --- Category dispatch: action → real operation, no action → list ---
+  function dispatchCategory(categoryName, action, args) {
+    const names = categoryIndex.get(categoryName)
+    if (!names) return null
+    if (!action) {
+      return { list: names.map(n => ({ name: n, summary: operations.get(n).summary })) }
+    }
+    if (!names.includes(action)) return { error: `Unknown action: ${action}. Available: ${names.join(', ')}` }
+    return { action, forward: true }
   }
 
   // --- Resources: tool help as MCP resources ---
@@ -166,6 +212,7 @@ export function createDispatch(bus, conn, openapiSpec) {
       summary: op.summary,
       description: op.description,
       http: { method: op.method, path: op.pathTemplate },
+      inputSchema: op.handler === 'local' ? op.inputSchema : buildInputSchema(op),
       parameters: op.parameters.map(p => ({
         name: p.name, in: p.in, required: !!p.required,
         type: p.schema?.type, description: p.description?.trim()
@@ -174,7 +221,6 @@ export function createDispatch(bus, conn, openapiSpec) {
     if (op.bodySchema) {
       help.requestBody = op.bodySchema
     }
-    // Extract response schema from first success status
     for (const status of ['200', '201', '202']) {
       const schema = op.responses[status]?.content?.['application/json']?.schema
       if (schema) { help.responseSchema = schema; break }
@@ -182,58 +228,70 @@ export function createDispatch(bus, conn, openapiSpec) {
     return help
   }
 
-  // --- Bus handler: route tool call → HTTP request ---
+  // --- Bus handler: route tool call → HTTP or local handler ---
   bus.handle('dispatch', async ({ name, arguments: args }) => {
     const op = operations.get(name)
     if (!op) throw new Error(`unknown operation: ${name}`)
 
+    // Local handler: handler: 'local' → localHandlers[name](args)
+    if (op.handler === 'local') {
+      const fn = localHandlers[name]
+      if (!fn) throw new Error(`no local handler for: ${name}`)
+      return { status: 200, data: fn(args) }
+    }
+
+    // Inject database-name default from connection state before validation
+    const input = { ...args }
+    if (input['database-name'] === undefined && op.pathParams.some(p => p.name === 'database-name')) {
+      input['database-name'] = conn.getDatabase()
+    }
+
+    // ObjectTree as object class — schema IS the class, tree IS the instance
+    // Property getters enforce schema constraints on access (type, enum, format)
+    const tree = new ObjectTree(input, op.inputSchema)
+
+    // Access via property getters — schema-driven, not raw dict lookup
     const pathValues = {}
-    const queryValues = {}
-    const headers = {}
-    const bodyParamNames = new Set()
-
-    // Collect known parameter names for body detection
-    for (const p of op.parameters) bodyParamNames.add(p.name)
-
-    // Decompose args by parameter type
     for (const p of op.pathParams) {
-      if (args[p.name] !== undefined) pathValues[p.name] = args[p.name]
-    }
-    for (const p of op.queryParams) {
-      if (args[p.name] !== undefined) queryValues[p.name] = args[p.name]
-    }
-    for (const p of op.headerParams) {
-      if (args[p.name] !== undefined) headers[p.name] = String(args[p.name])
+      const v = tree[p.name]
+      if (v !== undefined) pathValues[p.name] = v
     }
 
-    // Build body: remaining args that aren't params, or explicit _body
+    const queryValues = {}
+    for (const p of op.queryParams) {
+      const v = tree[p.name]
+      if (v !== undefined) queryValues[p.name] = v
+    }
+
+    const headers = {}
+    for (const p of op.headerParams) {
+      const v = tree[p.name]
+      if (v !== undefined) headers[p.name] = String(v)
+    }
+
+    // Body: schema-defined properties via tree, additionalProperties from raw input
+    const paramNames = new Set(op.parameters.map(p => p.name))
     let body = undefined
     if (op.bodySchema) {
-      if (args._body !== undefined) {
-        body = args._body
+      if (input._body !== undefined) {
+        body = input._body
       } else if (op.bodySchema.properties) {
-        // Collect properties that match body schema (not in params)
         body = {}
         for (const key of Object.keys(op.bodySchema.properties)) {
-          if (args[key] !== undefined) body[key] = args[key]
+          const v = tree[key]
+          if (v !== undefined) body[key] = v
         }
-        // Also include any args not matching known params or body schema props
-        // (handles additionalProperties)
-        for (const [key, val] of Object.entries(args)) {
-          if (!bodyParamNames.has(key) && !(key in body)) {
-            body[key] = val
-          }
+        // additionalProperties: keys not in params and not already in body
+        for (const [key, val] of Object.entries(input)) {
+          if (!paramNames.has(key) && !(key in body)) body[key] = val
         }
         if (!Object.keys(body).length) body = undefined
       }
     }
 
-    // Assemble URL
     const path = buildPath(op.pathTemplate, pathValues) + buildQuery(queryValues)
-
-    const result = await conn.request(op.method, path, { headers, body })
-    return result
+    return await conn.request(op.method, path, { headers, body })
   })
 
-  return { getToolList, getResourceList, getCategories, getToolHelp, operations }
+  return { getToolList, dispatchCategory, getResourceList, getCategories, getToolHelp, operations }
 }

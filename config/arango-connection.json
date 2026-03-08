@@ -319,6 +319,53 @@
         }
       },
       "required": ["endpoints"]
+    },
+    "ConnectionTools": {
+      "description": "MCP tools for managing arangojs connection state. Not ArangoDB REST operations — these control the client connection layer.",
+      "categoryName": "Connection",
+      "categoryDescription": "3 tools: getConfig: Get current connection state (database, url). setDatabase: Switch active database (persists to .env). setAuth: Switch authentication credentials (persists to .env).",
+      "actions": [
+        {
+          "name": "getConfig",
+          "summary": "Get current connection state (database, url)",
+          "inputSchema": {
+            "type": "object",
+            "properties": {}
+          }
+        },
+        {
+          "name": "setDatabase",
+          "summary": "Switch active database (persists to .env)",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "database": {
+                "description": "Database name to switch to.",
+                "type": "string"
+              }
+            },
+            "required": ["database"]
+          }
+        },
+        {
+          "name": "setAuth",
+          "summary": "Switch authentication credentials (persists to .env)",
+          "inputSchema": {
+            "type": "object",
+            "properties": {
+              "username": {
+                "$ref": "#/definitions/BasicAuthCredentials/properties/username"
+              },
+              "password": {
+                "$ref": "#/definitions/BasicAuthCredentials/properties/password"
+              },
+              "token": {
+                "$ref": "#/definitions/BearerAuthCredentials/properties/token"
+              }
+            }
+          }
+        }
+      ]
     }
   }
 }

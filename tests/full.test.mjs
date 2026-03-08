@@ -11,6 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const configDir = join(__dirname, '..', 'config')
 const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
 const openapiSpec = JSON.parse(readFileSync(join(configDir, 'arango-openapi.json'), 'utf8'))
+const connSchema = JSON.parse(readFileSync(join(configDir, 'arango-connection.json'), 'utf8'))
 const defs = mcpSchema.definitions
 
 function mcpDef(name) {
@@ -42,7 +43,7 @@ describe('Full Function Test', () => {
       async () => {
         const core = createCore({
           profile: { url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } },
-          mcpSchema, openapiSpec, debug: false
+          mcpSchema, openapiSpec, connSchema, debug: false
         })
 
         // Step 1: initialize
@@ -52,7 +53,7 @@ describe('Full Function Test', () => {
 
         // Step 2: tools/list
         const list = await core.handle({ jsonrpc: '2.0', method: 'tools/list', id: 2 })
-        assert.ok(list.result.tools.length > 200)
+        assert.ok(list.result.tools.length >= 20, `Expected 20+ category tools, got ${list.result.tools.length}`)
         new ObjectTree(list.result, mcpDef('ListToolsResult'))
 
         // Step 3: tools/call
@@ -82,7 +83,7 @@ describe('Full Function Test', () => {
       async () => {
         const core = createCore({
           profile: { url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } },
-          mcpSchema, openapiSpec, debug: false
+          mcpSchema, openapiSpec, connSchema, debug: false
         })
 
         const res = await core.handle({
@@ -103,7 +104,7 @@ describe('Full Function Test', () => {
       async () => {
         const core = createCore({
           profile: { url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } },
-          mcpSchema, openapiSpec, debug: false
+          mcpSchema, openapiSpec, connSchema, debug: false
         })
 
         const res = await core.handle({
@@ -123,7 +124,7 @@ describe('Full Function Test', () => {
   it('invalid JSON-RPC returns protocol error', async () => {
     const core = createCore({
       profile: { url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } },
-      mcpSchema, openapiSpec, debug: false
+      mcpSchema, openapiSpec, connSchema, debug: false
     })
 
     const res = await core.handle({ method: 'ping', id: 20 })
@@ -135,7 +136,7 @@ describe('Full Function Test', () => {
   it('null/undefined message returns error without crashing', async () => {
     const core = createCore({
       profile: { url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } },
-      mcpSchema, openapiSpec, debug: false
+      mcpSchema, openapiSpec, connSchema, debug: false
     })
 
     const res1 = await core.handle(null)
@@ -156,7 +157,7 @@ describe('Full Function Test', () => {
       async () => {
         const core = createCore({
           profile: { url: 'http://localhost:8529', database: '_system', auth: { username: 'root', password: '' } },
-          mcpSchema, openapiSpec, debug: false
+          mcpSchema, openapiSpec, connSchema, debug: false
         })
 
         const [r1, r2, r3] = await Promise.all([

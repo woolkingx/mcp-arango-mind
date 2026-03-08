@@ -2,7 +2,7 @@
 
 Schema-driven [Model Context Protocol](https://modelcontextprotocol.io/) server for [ArangoDB](https://arangodb.com/). Zero npm dependencies.
 
-Exposes all ArangoDB REST API operations as MCP tools — 252 tools generated at startup from the OpenAPI spec. No hand-written tool definitions; add a new ArangoDB endpoint to the spec and it becomes a tool automatically.
+Exposes all ArangoDB REST API operations as MCP tools — 23 category tools generated at startup from the OpenAPI spec (252 operations grouped by domain). No hand-written tool definitions; add a new ArangoDB endpoint to the spec and it becomes a tool automatically.
 
 ## Architecture
 
@@ -10,7 +10,7 @@ Three JSON schemas drive the entire server:
 
 ```
 mcp-schema.json        → Protocol layer (JSON-RPC validation)
-arango-openapi.json    → Dispatch layer (252 tools from OpenAPI spec)
+arango-openapi.json    → Dispatch layer (252 operations → 22 category tools)
 arango-connection.json → Transport layer (connection config, retry, auth)
 ```
 
@@ -25,15 +25,15 @@ Core modules:
 | File | Lines | Role |
 |------|-------|------|
 | `bus.mjs` | 45 | Message bus with request correlation |
-| `protocol.mjs` | 94 | MCP JSON-RPC handler |
-| `dispatch.mjs` | 239 | OpenAPI → MCP tool mapping + HTTP dispatch |
-| `connection.mjs` | 186 | Connection pool, retry, failover, auth |
+| `protocol.mjs` | 122 | MCP JSON-RPC handler |
+| `dispatch.mjs` | 297 | OpenAPI + ConnectionTools → category tools + HTTP dispatch |
+| `connection.mjs` | 188 | Connection pool, retry, failover, auth |
 | `errors.mjs` | 98 | Typed error hierarchy (ArangoError, HttpError, NetworkError) |
 | `log.mjs` | 58 | Per-request summary + per-event debug logging |
-| `env.mjs` | 64 | `.env` loader + config cascade |
-| `core.mjs` | 43 | Assembly: wire all components |
-| `server.mjs` | 55 | CLI entry: parse args, load schemas, start transport |
-| `lib/schema2object.mjs` | 487 | JSON Schema → runtime object with validation + defaults |
+| `env.mjs` | 103 | `.env` loader + config cascade |
+| `core.mjs` | 73 | Assembly: wire all components + Connection local handlers |
+| `server.mjs` | 56 | CLI entry: parse args, load schemas, start transport |
+| `lib/schema2object.mjs` | 487 | JSON Schema → object class runtime (ObjectTree) |
 
 ## Quick Start
 
@@ -130,7 +130,7 @@ Beyond tools, the server exposes discoverable resources:
 
 | URI | Description |
 |-----|-------------|
-| `tool://categories` | All 22 tool categories with tool counts |
+| `tool://categories` | All 23 tool categories with tool counts |
 | `tool://help/<toolName>` | Per-tool help: parameters, HTTP method, path |
 
 ## Testing

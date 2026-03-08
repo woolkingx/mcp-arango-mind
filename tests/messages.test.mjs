@@ -13,8 +13,9 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const configDir = join(__dirname, '..', 'config')
 const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
 const openapiSpec = JSON.parse(readFileSync(join(configDir, 'arango-openapi.json'), 'utf8'))
+const connSchema = JSON.parse(readFileSync(join(configDir, 'arango-connection.json'), 'utf8'))
 
-function setup(mockRequest) {
+function setup(mockRequest, localHandlers = {}) {
   const bus = createBus()
   const conn = createConnection({
     url: 'http://localhost:8529', database: '_system',
@@ -25,14 +26,15 @@ function setup(mockRequest) {
   // Capture log messages
   const logs = []
   bus.handle('log', (msg) => logs.push(msg))
-  const d = createDispatch(bus, conn, openapiSpec)
+  const d = createDispatch(bus, conn, openapiSpec, connSchema, localHandlers)
   createProtocol(bus, mcpSchema, {
     toolList: d.getToolList(),
+    dispatchCategory: d.dispatchCategory,
     resourceList: d.getResourceList(),
     getCategories: d.getCategories,
     getToolHelp: d.getToolHelp
   })
-  return { bus, logs }
+  return { bus, logs, conn }
 }
 
 describe('MCP ↔ OpenAPI Message Bridge', () => {
@@ -134,5 +136,46 @@ describe('MCP ↔ OpenAPI Message Bridge', () => {
         `Log status should be completed or failed: ${log.status}`)
       assert.ok(typeof log.duration === 'number', 'Log should have duration')
     }
+  })
+
+  it('Connection category appears in tools/list', async () => {
+    const { bus } = setup(async () => ({ status: 200, data: {} }))
+    const validated = await bus.send('validate', { jsonrpc: '2.0', method: 'tools/list', id: 10 })
+    const res = await bus.send('route', validated)
+    const tools = res.result.tools
+    const conn = tools.find(t => t.name === 'Connection')
+    assert.ok(conn, 'Connection category should be in tools/list')
+    assert.ok(conn.inputSchema.properties.action.enum.includes('getConfig'))
+    assert.ok(conn.inputSchema.properties.action.enum.includes('setDatabase'))
+    assert.ok(conn.inputSchema.properties.action.enum.includes('setAuth'))
+  })
+
+  it('Connection getConfig returns database and url', async () => {
+    const localHandlers = {
+      getConfig: () => ({ database: '_system', url: 'http://localhost:8529' })
+    }
+    const { bus } = setup(async () => ({ status: 200, data: {} }), localHandlers)
+    const validated = await bus.send('validate', {
+      jsonrpc: '2.0', method: 'tools/call', id: 11,
+      params: { name: 'Connection', arguments: { action: 'getConfig' } }
+    })
+    const res = await bus.send('route', validated)
+    assert.ok(!res.result.isError, 'Should not be error')
+    const data = JSON.parse(res.result.content[0].text)
+    assert.equal(data.database, '_system')
+    assert.ok(data.url)
+  })
+
+  it('Connection setDatabase missing required param returns error', async () => {
+    const localHandlers = {
+      setDatabase: (args) => { throw new Error('database parameter required') }
+    }
+    const { bus } = setup(async () => ({ status: 200, data: {} }), localHandlers)
+    const validated = await bus.send('validate', {
+      jsonrpc: '2.0', method: 'tools/call', id: 12,
+      params: { name: 'Connection', arguments: { action: 'setDatabase' } }
+    })
+    const res = await bus.send('route', validated)
+    assert.ok(res.result.isError, 'Missing required param should return isError')
   })
 })

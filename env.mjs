@@ -1,9 +1,18 @@
 // env.mjs — Load .env file, merge ARANGO_* env vars into profile config
-import { readFileSync, existsSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync } from 'node:fs'
 import { resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { ObjectTree } from './lib/schema2object.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+let _schema = null
+function getSchema() {
+  if (!_schema) {
+    _schema = JSON.parse(readFileSync(resolve(__dirname, 'config/arango-connection.json'), 'utf-8'))
+  }
+  return _schema
+}
 
 /** Parse .env file into key=value pairs. Ignores comments and blank lines. */
 function parseEnvFile(filePath) {
@@ -57,8 +66,38 @@ export function profileFromEnv() {
   return p
 }
 
-/** Merge profile with env overrides. Env wins. */
+/** Merge profile with env overrides. Env wins. Auth uses oneOf schema to enforce shape. */
 export function resolveProfile(profile) {
   const env = profileFromEnv()
-  return { ...profile, ...env, auth: { ...profile.auth, ...env.auth } }
+  // Env auth replaces profile auth entirely (oneOf: Basic OR Bearer, never mixed)
+  const auth = env.auth || profile.auth
+  const merged = { ...profile, ...env, auth }
+  // Validate auth shape via ObjectTree + AuthCredentials oneOf
+  if (auth) {
+    const schema = getSchema()
+    const authSchema = { $ref: '#/definitions/AuthCredentials', definitions: schema.definitions }
+    new ObjectTree(auth, authSchema) // throws if auth is mixed shape
+  }
+  return merged
+}
+
+/** Write a key=value to .env file. Updates existing key or appends new one. */
+export function saveEnv(key, value, envPath) {
+  const filePath = envPath || resolve(__dirname, '.env')
+  const lines = existsSync(filePath) ? readFileSync(filePath, 'utf-8').split('\n') : []
+  let found = false
+  for (let i = 0; i < lines.length; i++) {
+    const trimmed = lines[i].trim()
+    if (trimmed.startsWith('#') || !trimmed) continue
+    const eq = trimmed.indexOf('=')
+    if (eq === -1) continue
+    if (trimmed.slice(0, eq).trim() === key) {
+      lines[i] = `${key}=${value}`
+      found = true
+      break
+    }
+  }
+  if (!found) lines.push(`${key}=${value}`)
+  writeFileSync(filePath, lines.join('\n'))
+  process.env[key] = value
 }

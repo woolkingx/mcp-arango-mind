@@ -21,6 +21,11 @@ function cfg(overrides = {}) {
   return { ...env, ...overrides }
 }
 
+// Build database-scoped path: /_db/{database}/_api/...
+function dbPath(conn, apiPath) {
+  return `/_db/${encodeURIComponent(conn.getDatabase())}${apiPath}`
+}
+
 describe('Connection: config validation', { skip: SKIP }, () => {
   it('creates connection with env config', () => {
     const conn = createConnection(cfg())
@@ -46,7 +51,7 @@ describe('Connection: real HTTP requests', { skip: SKIP }, () => {
   it('GET /_api/version returns server info', async () => {
     const conn = createConnection(cfg())
     try {
-      const res = await conn.request('GET', '/_api/version')
+      const res = await conn.request('GET', dbPath(conn, '/_api/version'))
       assert.equal(res.status, 200)
       assert.equal(res.data.server, 'arango')
       assert.ok(res.data.version)
@@ -56,7 +61,7 @@ describe('Connection: real HTTP requests', { skip: SKIP }, () => {
   it('GET /_api/collection lists collections', async () => {
     const conn = createConnection(cfg())
     try {
-      const res = await conn.request('GET', '/_api/collection')
+      const res = await conn.request('GET', dbPath(conn, '/_api/collection'))
       assert.equal(res.status, 200)
       assert.ok(Array.isArray(res.data.result))
     } finally { conn.close() }
@@ -65,7 +70,7 @@ describe('Connection: real HTTP requests', { skip: SKIP }, () => {
   it('POST /_api/cursor executes AQL', async () => {
     const conn = createConnection(cfg())
     try {
-      const res = await conn.request('POST', '/_api/cursor', {
+      const res = await conn.request('POST', dbPath(conn, '/_api/cursor'), {
         body: { query: 'RETURN 1' }
       })
       assert.ok([200, 201].includes(res.status))
@@ -76,7 +81,7 @@ describe('Connection: real HTTP requests', { skip: SKIP }, () => {
   it('returns ArangoDB error response as-is (not thrown)', async () => {
     const conn = createConnection(cfg())
     try {
-      const res = await conn.request('GET', '/_api/collection/nonexistent_collection_xyz')
+      const res = await conn.request('GET', dbPath(conn, '/_api/collection/nonexistent_collection_xyz'))
       // Should return error data, not throw
       assert.ok(res.data.error === true || res.status === 404)
       if (res.data.error) {
@@ -91,13 +96,13 @@ describe('Connection: real HTTP requests', { skip: SKIP }, () => {
     const name = 'test_conn_' + Date.now()
     try {
       // Create
-      const create = await conn.request('POST', '/_api/collection', {
+      const create = await conn.request('POST', dbPath(conn, '/_api/collection'), {
         body: { name }
       })
       assert.ok([200, 201, 409].includes(create.status))
 
       // Delete
-      const del = await conn.request('DELETE', `/_api/collection/${name}`)
+      const del = await conn.request('DELETE', dbPath(conn, `/_api/collection/${name}`))
       assert.ok([200, 404].includes(del.status))
     } finally { conn.close() }
   })
@@ -109,7 +114,7 @@ describe('Connection: auth', { skip: SKIP }, () => {
       auth: { username: 'nonexistent_user_xyz', password: 'wrong' }
     }))
     try {
-      const res = await conn.request('GET', '/_api/version')
+      const res = await conn.request('GET', dbPath(conn, '/_api/version'))
       assert.equal(res.status, 401)
     } finally { conn.close() }
   })
@@ -120,12 +125,12 @@ describe('Connection: auth', { skip: SKIP }, () => {
     }))
     try {
       // First: should fail
-      const fail = await conn.request('GET', '/_api/version')
+      const fail = await conn.request('GET', dbPath(conn, '/_api/version'))
       assert.equal(fail.status, 401)
 
       // Switch to good credentials
       conn.setAuth(env.auth)
-      const ok = await conn.request('GET', '/_api/version')
+      const ok = await conn.request('GET', dbPath(conn, '/_api/version'))
       assert.equal(ok.status, 200)
     } finally { conn.close() }
   })
@@ -137,7 +142,7 @@ describe('Connection: transaction', { skip: SKIP }, () => {
     conn.setTransactionId('test-trx-id')
     try {
       // ArangoDB may ignore invalid trx IDs on reads — just verify no crash
-      const res = await conn.request('GET', '/_api/version')
+      const res = await conn.request('GET', dbPath(conn, '/_api/version'))
       assert.ok(res.status, 'Should get a response')
     } finally {
       conn.setTransactionId(null)
@@ -149,7 +154,7 @@ describe('Connection: transaction', { skip: SKIP }, () => {
     const conn = createConnection(cfg())
     try {
       // Begin transaction
-      const begin = await conn.request('POST', '/_api/transaction/begin', {
+      const begin = await conn.request('POST', dbPath(conn, '/_api/transaction/begin'), {
         body: { collections: { read: ['_system'] } }
       })
       // May fail if _system collection doesn't exist in test db — that's ok
@@ -158,12 +163,12 @@ describe('Connection: transaction', { skip: SKIP }, () => {
         conn.setTransactionId(trxId)
 
         // Read within transaction
-        const read = await conn.request('GET', '/_api/collection')
+        const read = await conn.request('GET', dbPath(conn, '/_api/collection'))
         assert.equal(read.status, 200)
 
         // Abort
         conn.setTransactionId(null)
-        await conn.request('DELETE', `/_api/transaction/${trxId}`)
+        await conn.request('DELETE', dbPath(conn, `/_api/transaction/${trxId}`))
       }
     } finally { conn.close() }
   })
@@ -177,7 +182,7 @@ describe('Connection: error types', { skip: SKIP }, () => {
       auth: { username: 'x', password: 'x' }
     })
     try {
-      await conn.request('GET', '/_api/version')
+      await conn.request('GET', dbPath(conn, '/_api/version'))
       assert.fail('Should have thrown')
     } catch (err) {
       assert.ok(err instanceof NetworkError || err instanceof FetchFailedError,
@@ -188,7 +193,7 @@ describe('Connection: error types', { skip: SKIP }, () => {
   it('timeout → error with timeout indication', async () => {
     const conn = createConnection(cfg({ timeout: 1 })) // 1ms timeout
     try {
-      await conn.request('POST', '/_api/cursor', {
+      await conn.request('POST', dbPath(conn, '/_api/cursor'), {
         body: { query: 'FOR i IN 1..1000000 RETURN SLEEP(0.001)' }
       })
       // Might succeed if server is fast — that's ok
@@ -201,7 +206,7 @@ describe('Connection: error types', { skip: SKIP }, () => {
   it('isArangoErrorResponse identifies real error', async () => {
     const conn = createConnection(cfg())
     try {
-      const res = await conn.request('GET', '/_api/collection/nonexistent_xyz')
+      const res = await conn.request('GET', dbPath(conn, '/_api/collection/nonexistent_xyz'))
       if (res.data.error) {
         assert.ok(isArangoErrorResponse(res.data))
         assert.equal(isSafeToRetry({ isSafeToRetry: null }), null)
@@ -215,7 +220,7 @@ describe('Connection: concurrent requests', { skip: SKIP }, () => {
     const conn = createConnection(cfg({ poolSize: 2 }))
     try {
       const promises = Array.from({ length: 5 }, () =>
-        conn.request('GET', '/_api/version')
+        conn.request('GET', dbPath(conn, '/_api/version'))
       )
       const results = await Promise.all(promises)
       for (const r of results) {
@@ -229,7 +234,7 @@ describe('Connection: concurrent requests', { skip: SKIP }, () => {
     const conn = createConnection(cfg())
     try {
       const promises = Array.from({ length: 10 }, (_, i) =>
-        conn.request('POST', '/_api/cursor', {
+        conn.request('POST', dbPath(conn, '/_api/cursor'), {
           body: { query: `RETURN ${i}` }
         })
       )

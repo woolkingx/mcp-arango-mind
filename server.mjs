@@ -30,6 +30,7 @@ loadEnv()
 const configDir = join(__dirname, 'config')
 const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
 const openapiSpec = JSON.parse(readFileSync(join(configDir, 'arango-openapi.json'), 'utf8'))
+const connSchema = JSON.parse(readFileSync(join(configDir, 'arango-connection.json'), 'utf8'))
 const profilesConfig = JSON.parse(readFileSync(join(configDir, 'profiles.json'), 'utf8'))
 
 // Resolve profile: .env > profiles.json > schema defaults
@@ -43,7 +44,7 @@ const profile = resolveProfile(baseProfile)
 
 // Create core — --debug flag overrides profile logLevel
 const logLevel = debugFlag ? 'debug' : undefined
-const core = createCore({ profile, mcpSchema, openapiSpec, logLevel, auditFile })
+const core = createCore({ profile, mcpSchema, openapiSpec, connSchema, logLevel, auditFile })
 
 // Attach transport
 if (useSSE) {

@@ -1,4 +1,4 @@
-// Test 2: OpenAPI tool generation — every tool matches MCP Tool schema
+// Test 2: OpenAPI tool generation — category tools + operation help
 import { describe, it } from 'node:test'
 import { strict as assert } from 'node:assert'
 import { readFileSync } from 'node:fs'
@@ -27,63 +27,47 @@ function makeDispatch() {
 
 describe('OpenAPI Tool Generation', () => {
 
-  it('generates tools from OpenAPI spec', () => {
+  it('tools/list returns category-level tools (not 252 individual)', () => {
     const { getToolList } = makeDispatch()
     const tools = getToolList()
-    assert.ok(tools.length > 200, `Expected 200+ tools, got ${tools.length}`)
+    assert.ok(tools.length >= 20 && tools.length <= 30,
+      `Expected 20-30 category tools, got ${tools.length}`)
   })
 
-  it('every tool has required fields: name, inputSchema', () => {
+  it('every category tool has name, description, inputSchema', () => {
     const { getToolList } = makeDispatch()
     const tools = getToolList()
     for (const tool of tools) {
-      assert.ok(tool.name, `Tool missing name`)
+      assert.ok(tool.name, 'Tool missing name')
+      assert.ok(tool.description, `Tool ${tool.name} missing description`)
       assert.ok(tool.inputSchema, `Tool ${tool.name} missing inputSchema`)
-      assert.equal(tool.inputSchema.type, 'object', `Tool ${tool.name} inputSchema.type must be "object"`)
+      assert.equal(tool.inputSchema.type, 'object')
     }
   })
 
-  it('every tool matches MCP Tool schema', () => {
+  it('every category tool matches MCP Tool schema', () => {
     const { getToolList } = makeDispatch()
     const tools = getToolList()
-    let validated = 0
     for (const tool of tools) {
       new ObjectTree(tool, mcpDef('Tool'))
-      validated++
     }
-    assert.ok(validated > 200, `Validated ${validated} tools`)
   })
 
-  it('tool names are unique', () => {
+  it('category descriptions list tool names', () => {
+    const { getToolList } = makeDispatch()
+    const tools = getToolList()
+    for (const tool of tools) {
+      assert.match(tool.description, /\d+ tools:/, `${tool.name} description should show tool count`)
+    }
+  })
+
+  it('tool names are unique across categories', () => {
     const { getToolList } = makeDispatch()
     const tools = getToolList()
     const names = new Set()
     for (const tool of tools) {
-      assert.ok(!names.has(tool.name), `Duplicate tool name: ${tool.name}`)
+      assert.ok(!names.has(tool.name), `Duplicate category: ${tool.name}`)
       names.add(tool.name)
-    }
-  })
-
-  it('tool inputSchema properties match OpenAPI parameters', () => {
-    const { getToolList, operations } = makeDispatch()
-    const tools = getToolList()
-    for (const tool of tools) {
-      const op = operations.get(tool.name)
-      if (!op) continue
-      // Every path param should be in inputSchema.required
-      for (const p of op.pathParams) {
-        assert.ok(
-          tool.inputSchema.required?.includes(p.name),
-          `Tool ${tool.name}: path param "${p.name}" should be required`
-        )
-      }
-      // Every param should be in inputSchema.properties
-      for (const p of op.parameters) {
-        assert.ok(
-          tool.inputSchema.properties?.[p.name],
-          `Tool ${tool.name}: param "${p.name}" should be in properties`
-        )
-      }
     }
   })
 
@@ -97,5 +81,17 @@ describe('OpenAPI Tool Generation', () => {
     }
     assert.equal(operations.size, specOps,
       `Operations map (${operations.size}) should match spec operationIds (${specOps})`)
+  })
+
+  it('getToolHelp returns inputSchema for each operation', () => {
+    const { getToolHelp, operations } = makeDispatch()
+    for (const name of operations.keys()) {
+      const help = getToolHelp(name)
+      assert.ok(help, `No help for ${name}`)
+      assert.ok(help.inputSchema, `${name} help missing inputSchema`)
+      assert.equal(help.inputSchema.type, 'object')
+      assert.ok(help.http?.method, `${name} help missing http.method`)
+      assert.ok(help.http?.path, `${name} help missing http.path`)
+    }
   })
 })

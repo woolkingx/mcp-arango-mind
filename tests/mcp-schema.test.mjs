@@ -11,6 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const configDir = join(__dirname, '..', 'config')
 const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
 const openapiSpec = JSON.parse(readFileSync(join(configDir, 'arango-openapi.json'), 'utf8'))
+const connSchema = JSON.parse(readFileSync(join(configDir, 'arango-connection.json'), 'utf8'))
 const profilesConfig = JSON.parse(readFileSync(join(configDir, 'profiles.json'), 'utf8'))
 const defs = mcpSchema.definitions
 
@@ -21,7 +22,7 @@ function mcpDef(name) {
 function makeCore() {
   return createCore({
     profile: profilesConfig.profiles[profilesConfig.default],
-    mcpSchema, openapiSpec, debug: false
+    mcpSchema, openapiSpec, connSchema, debug: false
   })
 }
 
@@ -132,11 +133,13 @@ describe('MCP Schema Conformance', () => {
     assert.ok(res.error)
   })
 
-  it('tools/list descriptions have tag prefix', async () => {
+  it('tools/list returns category tools with tool count', async () => {
     const core = makeCore()
     const res = await core.handle({ jsonrpc: '2.0', method: 'tools/list', id: 15 })
-    for (const tool of res.result.tools.slice(0, 10)) {
-      assert.match(tool.description, /^\[.+\]/, `Tool ${tool.name} should have [Tag] prefix`)
+    assert.ok(res.result.tools.length >= 20 && res.result.tools.length <= 30,
+      `Expected 20-30 categories, got ${res.result.tools.length}`)
+    for (const tool of res.result.tools) {
+      assert.match(tool.description, /^\d+ tools:/, `Category ${tool.name} should list tool count`)
     }
   })
 })

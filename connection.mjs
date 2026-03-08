@@ -47,7 +47,7 @@ export function createConnection(config = {}) {
 
   const rawUrls = Array.isArray(cfg.url) ? cfg.url : [cfg.url];
   const hostUrls = rawUrls.map(normalizeUrl);
-  const database = cfg.database;
+  let database = cfg.database;
   let authHeader = buildAuthHeader(cfg.auth);
   const loadBalancing = cfg.loadBalancing;
   let hostIndex = loadBalancing === 'ONE_RANDOM'
@@ -76,7 +76,7 @@ export function createConnection(config = {}) {
 
   // ── Single fetch against one host ───────────────────────────────────────
   async function fetchHost(hostUrl, method, path, { headers, body, timeout } = {}) {
-    const url = `${hostUrl}/_db/${encodeURIComponent(database)}${path}`;
+    const url = `${hostUrl}${path}`;
     const reqHeaders = { ...headers };
     if (authHeader && !reqHeaders.authorization) reqHeaders.authorization = authHeader;
     if (transactionId) reqHeaders['x-arango-trx-id'] = transactionId;
@@ -174,7 +174,9 @@ export function createConnection(config = {}) {
       pending.clear();
     },
     getActiveHostUrl() { return hostUrls[hostIndex]; },
+    getDatabase() { return database; },
     setAuth(auth) { authHeader = buildAuthHeader(auth); },
+    setDatabase(db) { database = db; },
     setTransactionId(id) { transactionId = id || null; },
     get queueTime() {
       const latest = queueTimes.length ? queueTimes[queueTimes.length - 1][1] : undefined;

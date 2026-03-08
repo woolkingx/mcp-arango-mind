@@ -9,7 +9,7 @@ function jsonrpcError(id, code, message) {
 }
 
 export function createProtocol(bus, mcpSchema, dispatch) {
-  const { toolList, resourceList, getCategories, getToolHelp } = dispatch
+  const { toolList, dispatchCategory, resourceList, getCategories, getToolHelp } = dispatch
 
   bus.handle('validate', (msg) => {
     if (msg.jsonrpc !== '2.0') {
@@ -71,6 +71,35 @@ export function createProtocol(bus, mcpSchema, dispatch) {
       case 'tools/call': {
         const name = params.name
         const args = params.arguments || {}
+
+        // Category tool: action → dispatch, no action → list
+        const cat = dispatchCategory(name, args.action, args)
+        if (cat) {
+          if (cat.error) {
+            return jsonrpcResult(id, {
+              content: [{ type: 'text', text: cat.error }], isError: true
+            })
+          }
+          if (cat.list) {
+            return jsonrpcResult(id, {
+              content: [{ type: 'text', text: JSON.stringify(cat.list, null, 2) }]
+            })
+          }
+          // Forward: strip action, dispatch real operation
+          const { action, ...rest } = args
+          try {
+            const result = await bus.send('dispatch', { name: action, arguments: rest }, reqId)
+            return jsonrpcResult(id, {
+              content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }]
+            })
+          } catch (err) {
+            return jsonrpcResult(id, {
+              content: [{ type: 'text', text: 'Error: ' + err.message }], isError: true
+            })
+          }
+        }
+
+        // Direct operation call (fallback)
         try {
           const result = await bus.send('dispatch', { name, arguments: args }, reqId)
           return jsonrpcResult(id, {
@@ -78,8 +107,7 @@ export function createProtocol(bus, mcpSchema, dispatch) {
           })
         } catch (err) {
           return jsonrpcResult(id, {
-            content: [{ type: 'text', text: 'Error: ' + err.message }],
-            isError: true
+            content: [{ type: 'text', text: 'Error: ' + err.message }], isError: true
           })
         }
       }
