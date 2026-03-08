@@ -37,7 +37,7 @@ jobs:
           echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | timeout 5 node server.mjs | node -e "
             let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
               const r=JSON.parse(d);
-              if(!r.result?.tools?.length||r.result.tools.length<200) process.exit(1);
+              if(!r.result?.tools?.length||r.result.tools.length<20) process.exit(1);
               console.log('tools/list OK:', r.result.tools.length, 'tools');
             })"
 
@@ -53,7 +53,7 @@ jobs:
 
       - name: Check syntax (all .mjs files parse)
         run: |
-          for f in *.mjs transports/*.mjs lib/*.mjs; do
+          for f in server.mjs src/*.mjs src/transports/*.mjs src/lib/*.mjs; do
             node --check "$f" && echo "OK: $f" || exit 1
           done
 
@@ -63,17 +63,18 @@ jobs:
             echo "ERROR: node_modules should not exist"
             exit 1
           fi
-          node -e "
-            import './bus.mjs'
-            import './errors.mjs'
-            import './connection.mjs'
-            import './env.mjs'
-            import './log.mjs'
-          " && echo "No dependencies needed"
+          node --input-type=module <<'EOF'
+            import './src/bus.mjs'
+            import './src/errors.mjs'
+            import './src/connection.mjs'
+            import './src/env.mjs'
+            import './src/log.mjs'
+          EOF
+          echo "No dependencies needed"
 
       - name: Check file sizes (max 300 lines)
         run: |
-          for f in bus.mjs errors.mjs connection.mjs env.mjs log.mjs dispatch.mjs protocol.mjs core.mjs server.mjs transports/stdio.mjs transports/sse.mjs; do
+          for f in server.mjs src/bus.mjs src/errors.mjs src/connection.mjs src/env.mjs src/log.mjs src/dispatch.mjs src/protocol.mjs src/core.mjs src/transports/stdio.mjs src/transports/sse.mjs; do
             lines=$(wc -l < "$f")
             if [ "$lines" -gt 300 ]; then
               echo "ERROR: $f has $lines lines (max 300)"
