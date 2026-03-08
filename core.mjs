@@ -7,11 +7,11 @@ import { createDispatch } from './dispatch.mjs'
 import { createProtocol } from './protocol.mjs'
 
 export function createCore(config) {
-  const { profile, mcpSchema, openapiSpec, debug, auditFile } = config
+  const { profile, mcpSchema, openapiSpec, logLevel, auditFile } = config
 
   const bus = createBus()
   const conn = createConnection(profile)
-  createLogger(bus, { auditFile, debug })
+  createLogger(bus, { auditFile, logLevel: logLevel || profile.logLevel })
   const { getToolList, getResourceList, getCategories, getToolHelp } = createDispatch(bus, conn, openapiSpec)
   createProtocol(bus, mcpSchema, {
     toolList: getToolList(),
@@ -21,9 +21,10 @@ export function createCore(config) {
   })
 
   async function handle(message) {
+    const reqId = bus.newRequest()
     try {
-      const validated = await bus.send('validate', message)
-      const response = await bus.send('route', validated)
+      const validated = await bus.send('validate', message, reqId)
+      const response = await bus.send('route', validated, reqId)
       return response
     } catch (err) {
       return {

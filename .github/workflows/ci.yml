@@ -65,13 +65,15 @@ jobs:
           fi
           node -e "
             import './bus.mjs'
-            import './pool.mjs'
+            import './errors.mjs'
+            import './connection.mjs'
+            import './env.mjs'
             import './log.mjs'
           " && echo "No dependencies needed"
 
       - name: Check file sizes (max 300 lines)
         run: |
-          for f in bus.mjs pool.mjs log.mjs dispatch.mjs protocol.mjs core.mjs server.mjs transports/stdio.mjs transports/sse.mjs; do
+          for f in bus.mjs errors.mjs connection.mjs env.mjs log.mjs dispatch.mjs protocol.mjs core.mjs server.mjs transports/stdio.mjs transports/sse.mjs; do
             lines=$(wc -l < "$f")
             if [ "$lines" -gt 300 ]; then
               echo "ERROR: $f has $lines lines (max 300)"

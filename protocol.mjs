@@ -21,7 +21,7 @@ export function createProtocol(bus, mcpSchema, dispatch) {
     return msg
   })
 
-  bus.handle('route', async (msg) => {
+  bus.handle('route', async (msg, reqId) => {
     const { method, params, id } = msg
 
     switch (method) {
@@ -72,7 +72,7 @@ export function createProtocol(bus, mcpSchema, dispatch) {
         const name = params.name
         const args = params.arguments || {}
         try {
-          const result = await bus.send('dispatch', { name, arguments: args })
+          const result = await bus.send('dispatch', { name, arguments: args }, reqId)
           return jsonrpcResult(id, {
             content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }]
           })

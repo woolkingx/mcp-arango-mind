@@ -53,6 +53,7 @@ export function profileFromEnv() {
   if (process.env.ARANGO_TOKEN) {
     p.auth = { token: process.env.ARANGO_TOKEN }
   }
+  if (process.env.ARANGO_LOG_LEVEL) p.logLevel = process.env.ARANGO_LOG_LEVEL
   return p
 }
 

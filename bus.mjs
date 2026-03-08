@@ -1,16 +1,22 @@
-// Message bus: event + payload + status
+// Message bus: event + payload + status + request context
 
 class Bus {
   #handlers = new Map()
   #msgId = 0
+  #reqId = 0
 
   handle(event, fn) {
     this.#handlers.set(event, fn)
   }
 
-  async send(event, payload) {
+  /** Create a new request context. Returns reqId for correlation. */
+  newRequest() {
+    return `req_${++this.#reqId}`
+  }
+
+  async send(event, payload, reqId) {
     const msg = {
-      id: `msg_${++this.#msgId}`,
+      id: `msg_${++this.#msgId}`, reqId: reqId || null,
       event, status: 'pending', payload, ts: Date.now()
     }
     const handler = this.#handlers.get(event)
@@ -22,7 +28,7 @@ class Bus {
     }
     msg.status = 'processing'
     try {
-      const result = await handler(msg.payload)
+      const result = await handler(msg.payload, reqId)
       msg.status = 'completed'
       return result
     } catch (err) {

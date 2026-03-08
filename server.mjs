@@ -11,7 +11,7 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 // Parse CLI args
 const args = process.argv.slice(2)
 const useSSE = args.includes('--sse')
-const debug = args.includes('--debug')
+const debugFlag = args.includes('--debug')
 
 function getArg(flag) {
   const idx = args.indexOf(flag)
@@ -41,8 +41,9 @@ if (!baseProfile) {
 }
 const profile = resolveProfile(baseProfile)
 
-// Create core
-const core = createCore({ profile, mcpSchema, openapiSpec, debug, auditFile })
+// Create core — --debug flag overrides profile logLevel
+const logLevel = debugFlag ? 'debug' : undefined
+const core = createCore({ profile, mcpSchema, openapiSpec, logLevel, auditFile })
 
 // Attach transport
 if (useSSE) {
