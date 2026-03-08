@@ -22,6 +22,7 @@ const port = parseInt(getArg('--port') || '8000', 10)
 const host = getArg('--host') || '127.0.0.1'
 const profileName = getArg('--profile')
 const auditFile = getArg('--audit')
+const useEnterprise = args.includes('--enterprise')
 
 // Load .env → process.env
 loadEnv()
@@ -29,7 +30,8 @@ loadEnv()
 // Load config files
 const configDir = join(__dirname, 'config')
 const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
-const openapiSpec = JSON.parse(readFileSync(join(configDir, 'arango-openapi.json'), 'utf8'))
+const openapiFile = useEnterprise ? 'arango-openapi.json' : 'arango-openapi-community.json'
+const openapiSpec = JSON.parse(readFileSync(join(configDir, openapiFile), 'utf8'))
 const connSchema = JSON.parse(readFileSync(join(configDir, 'arango-connection.json'), 'utf8'))
 const profilesConfig = JSON.parse(readFileSync(join(configDir, 'profiles.json'), 'utf8'))
 

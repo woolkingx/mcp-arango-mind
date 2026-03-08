@@ -87,6 +87,7 @@ Priority (highest wins):
 --port <number>     HTTP port (default: 8000)
 --host <address>    HTTP bind address (default: 127.0.0.1)
 --audit <file>      Write structured JSON audit log to file
+--enterprise        Use full spec (arango-openapi.json) instead of community spec
 ```
 
 ### Connection Options
