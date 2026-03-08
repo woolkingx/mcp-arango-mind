@@ -1,8 +1,8 @@
 {
   "name": "mcp-arango-mind",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "type": "module",
-  "description": "Schema-driven MCP server for ArangoDB",
+  "description": "Full-featured ArangoDB MCP server. 250+ tools generated from OpenAPI spec, zero npm dependencies.",
   "main": "server.mjs",
   "scripts": {
     "start": "node server.mjs",
