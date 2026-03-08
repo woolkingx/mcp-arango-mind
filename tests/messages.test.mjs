@@ -4,10 +4,10 @@ import { strict as assert } from 'node:assert'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createBus } from '../bus.mjs'
-import { createConnection } from '../connection.mjs'
-import { createDispatch } from '../dispatch.mjs'
-import { createProtocol } from '../protocol.mjs'
+import { createBus } from '../src/bus.mjs'
+import { createConnection } from '../src/connection.mjs'
+import { createDispatch } from '../src/dispatch.mjs'
+import { createProtocol } from '../src/protocol.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const configDir = join(__dirname, '..', 'config')

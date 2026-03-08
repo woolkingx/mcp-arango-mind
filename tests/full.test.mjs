@@ -4,8 +4,8 @@ import { strict as assert } from 'node:assert'
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { ObjectTree } from '../lib/schema2object.mjs'
-import { createCore } from '../core.mjs'
+import { ObjectTree } from '../src/lib/schema2object.mjs'
+import { createCore } from '../src/core.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const configDir = join(__dirname, '..', 'config')

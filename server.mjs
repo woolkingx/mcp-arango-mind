@@ -3,8 +3,8 @@
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
-import { createCore } from './core.mjs'
-import { loadEnv, resolveProfile } from './env.mjs'
+import { createCore } from './src/core.mjs'
+import { loadEnv, resolveProfile } from './src/env.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -50,9 +50,9 @@ const core = createCore({ profile, mcpSchema, openapiSpec, connSchema, logLevel,
 
 // Attach transport
 if (useSSE) {
-  const { startSSE } = await import('./transports/sse.mjs')
+  const { startSSE } = await import('./src/transports/sse.mjs')
   startSSE(core, { port, host })
 } else {
-  const { startStdio } = await import('./transports/stdio.mjs')
+  const { startStdio } = await import('./src/transports/stdio.mjs')
   startStdio(core)
 }

@@ -18,7 +18,7 @@ let _schema = null;
 function getSchema() {
   if (!_schema) {
     _schema = JSON.parse(readFileSync(
-      new URL('./config/arango-connection.json', import.meta.url), 'utf-8'
+      new URL('../config/arango-connection.json', import.meta.url), 'utf-8'
     ));
   }
   return _schema;

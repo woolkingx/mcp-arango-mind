@@ -2,12 +2,12 @@
 // Requires: ARANGO_URL, ARANGO_DB, ARANGO_USERNAME, ARANGO_PASSWORD in .env
 import { describe, it, before } from 'node:test'
 import { strict as assert } from 'node:assert'
-import { createConnection } from '../connection.mjs'
-import { loadEnv, profileFromEnv } from '../env.mjs'
+import { createConnection } from '../src/connection.mjs'
+import { loadEnv, profileFromEnv } from '../src/env.mjs'
 import {
   ArangoError, NetworkError, FetchFailedError,
   isArangoErrorResponse, isSafeToRetry
-} from '../errors.mjs'
+} from '../src/errors.mjs'
 
 // Load .env before anything
 loadEnv()
