@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.1] - 2026-03-14
+
+### Added
+
+- `docs/arangojs-port-status.md` — connection layer port analysis vs arangojs source
+- `docs/arangodb-editions.md` — enterprise vs community feature reference
+- `arango-cli.mjs` — three-mode CLI: list categories, action help, execute
+
 ## [0.1.0] - 2026-03-08
 
 ### Added
