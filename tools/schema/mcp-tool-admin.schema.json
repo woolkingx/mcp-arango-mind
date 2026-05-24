@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-tool-admin.schema.json",
+  "title": "MCP Tool Admin",
+  "description": "ArangoDB admin category scoped to Administration, Queries, Monitoring, and Tasks tags.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "payload"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["list", "search", "describe", "call"]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": { "type": "string", "description": "OpenAPI operationId within Administration, Queries, Monitoring, or Tasks tags." },
+        "params": { "type": "object" },
+        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
+        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
+    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
+    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
+  ],
+  "x-tool": {
+    "name": "mcp.tool.admin",
+    "title": "MCP Tool Admin",
+    "description": "ArangoDB admin category scoped to Administration, Queries, Monitoring, and Tasks tags.",
+    "target": "mcp.tool.admin",
+    "actions": {
+      "list":     { "handler": "categoryAdmin.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Admin-tag operation listing" },
+      "search":   { "handler": "categoryAdmin.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Admin-tag operation matches" },
+      "describe": { "handler": "categoryAdmin.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Admin-tag operation contract" },
+      "call":     { "handler": "categoryAdmin.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB Admin operation response" }
+    }
+  }
+}

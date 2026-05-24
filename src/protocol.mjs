@@ -1,4 +1,28 @@
-// MCP JSON-RPC protocol handler
+import { readFileSync } from 'node:fs'
+import { ObjectTree } from './lib/schema2object.mjs'
+
+const packageJson = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'))
+
+class ProtocolError extends Error {
+  constructor(code, message, id = null) {
+    super(message)
+    this.code = code
+    this.id = id
+  }
+}
+
+const REQUEST_SCHEMAS = new Map([
+  ['initialize', 'InitializeRequest'],
+  ['tools/list', 'ListToolsRequest'],
+  ['tools/call', 'CallToolRequest'],
+  ['resources/list', 'ListResourcesRequest'],
+  ['resources/read', 'ReadResourceRequest'],
+  ['ping', 'PingRequest']
+])
+
+const NOTIFICATION_SCHEMAS = new Map([
+  ['notifications/initialized', 'InitializedNotification']
+])
 
 function jsonrpcResult(id, result) {
   return { jsonrpc: '2.0', id, result }
@@ -8,17 +32,45 @@ function jsonrpcError(id, code, message) {
   return { jsonrpc: '2.0', id, error: { code, message } }
 }
 
-export function createProtocol(bus, mcpSchema, dispatch) {
-  const { toolList, dispatchCategory, resourceList, getCategories, getToolHelp } = dispatch
+function requestId(msg) {
+  return typeof msg?.id === 'string' || Number.isInteger(msg?.id) ? msg.id : null
+}
+
+function schemaRef(definitions, name) {
+  return { $ref: '#/$defs/' + name, $defs: definitions }
+}
+
+function validateMessage(msg, mcp) {
+  const id = requestId(msg)
+  if (!msg || typeof msg !== 'object' || Array.isArray(msg)) {
+    throw new ProtocolError(-32600, 'Invalid JSON-RPC request', null)
+  }
+  if (msg.jsonrpc !== '2.0' || typeof msg.method !== 'string') {
+    throw new ProtocolError(-32600, 'Invalid JSON-RPC request', id)
+  }
+
+  const notificationSchema = NOTIFICATION_SCHEMAS.get(msg.method)
+  const requestSchema = REQUEST_SCHEMAS.get(msg.method)
+  const schemaName = notificationSchema || requestSchema || 'JSONRPCRequest'
+  try {
+    new ObjectTree(msg, schemaRef(mcp.definitions, schemaName))
+  } catch (err) {
+    throw new ProtocolError(-32600, err.message, id)
+  }
+  return msg
+}
+
+export function createProtocol(bus, mcp, tools) {
+  const { protocolVersion } = mcp
+  const {
+    toolList,
+    callTool,
+    resourceList = [],
+    readResource = () => null
+  } = tools
 
   bus.handle('validate', (msg) => {
-    if (msg.jsonrpc !== '2.0') {
-      throw new Error('Invalid JSON-RPC: missing jsonrpc 2.0')
-    }
-    if (!msg.method || typeof msg.method !== 'string') {
-      throw new Error('Invalid JSON-RPC: missing method')
-    }
-    return msg
+    return validateMessage(msg, mcp)
   })
 
   bus.handle('route', async (msg, reqId) => {
@@ -27,12 +79,12 @@ export function createProtocol(bus, mcpSchema, dispatch) {
     switch (method) {
       case 'initialize':
         return jsonrpcResult(id, {
-          protocolVersion: '2025-03-26',
+          protocolVersion,
           capabilities: {
             tools: { listChanged: false },
             resources: { listChanged: false }
           },
-          serverInfo: { name: 'mcp-arango-mind', version: '1.0.0' }
+          serverInfo: { name: packageJson.name, version: packageJson.version }
         })
 
       case 'notifications/initialized':
@@ -47,64 +99,18 @@ export function createProtocol(bus, mcpSchema, dispatch) {
       case 'resources/read': {
         const uri = params?.uri
         if (!uri) return jsonrpcError(id, -32602, 'Missing uri param')
-
-        if (uri === 'tool://categories') {
-          const text = JSON.stringify(getCategories(), null, 2)
-          return jsonrpcResult(id, {
-            contents: [{ uri, mimeType: 'application/json', text }]
-          })
-        }
-
-        const helpMatch = uri.match(/^tool:\/\/help\/(.+)$/)
-        if (helpMatch) {
-          const help = getToolHelp(helpMatch[1])
-          if (!help) return jsonrpcError(id, -32602, `Unknown tool: ${helpMatch[1]}`)
-          const text = JSON.stringify(help, null, 2)
-          return jsonrpcResult(id, {
-            contents: [{ uri, mimeType: 'application/json', text }]
-          })
-        }
-
+        const result = readResource(uri)
+        if (result) return jsonrpcResult(id, result)
         return jsonrpcError(id, -32602, `Unknown resource: ${uri}`)
       }
 
       case 'tools/call': {
-        const name = params.name
-        const args = params.arguments || {}
-
-        // Category tool: action → dispatch, no action → list
-        const cat = dispatchCategory(name, args.action, args)
-        if (cat) {
-          if (cat.error) {
-            return jsonrpcResult(id, {
-              content: [{ type: 'text', text: cat.error }], isError: true
-            })
-          }
-          if (cat.list) {
-            return jsonrpcResult(id, {
-              content: [{ type: 'text', text: JSON.stringify(cat.list, null, 2) }]
-            })
-          }
-          // Forward: strip action, dispatch real operation
-          const { action, ...rest } = args
-          try {
-            const result = await bus.send('dispatch', { name: action, arguments: rest }, reqId)
-            return jsonrpcResult(id, {
-              content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }]
-            })
-          } catch (err) {
-            return jsonrpcResult(id, {
-              content: [{ type: 'text', text: 'Error: ' + err.message }], isError: true
-            })
-          }
-        }
-
-        // Direct operation call (fallback)
+        const name = params?.name
+        if (!name) return jsonrpcError(id, -32602, 'Missing tool name')
         try {
-          const result = await bus.send('dispatch', { name, arguments: args }, reqId)
-          return jsonrpcResult(id, {
-            content: [{ type: 'text', text: JSON.stringify(result.data, null, 2) }]
-          })
+          const result = await callTool(name, params.arguments || {})
+          if (!result) return jsonrpcError(id, -32602, `Unknown tool: ${name}`)
+          return jsonrpcResult(id, result)
         } catch (err) {
           return jsonrpcResult(id, {
             content: [{ type: 'text', text: 'Error: ' + err.message }], isError: true

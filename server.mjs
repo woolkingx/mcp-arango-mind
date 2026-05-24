@@ -29,11 +29,15 @@ loadEnv()
 
 // Load config files
 const configDir = join(__dirname, 'config')
-const mcpSchema = JSON.parse(readFileSync(join(configDir, 'mcp-schema.json'), 'utf8'))
-const openapiFile = useEnterprise ? 'arango-openapi.json' : 'arango-openapi-community.json'
-const openapiSpec = JSON.parse(readFileSync(join(configDir, openapiFile), 'utf8'))
-const connSchema = JSON.parse(readFileSync(join(configDir, 'arango-connection.json'), 'utf8'))
+if (useEnterprise) {
+  process.stderr.write('--enterprise is not active in the schema-owned runtime yet; using arango/schema/arango.openapi.schema.json\n')
+}
+const mcpSchema = JSON.parse(readFileSync(join(__dirname, 'mcp/schema/mcp.schema.json'), 'utf8'))
+const toolsSchema = JSON.parse(readFileSync(join(__dirname, 'tools/schema/tools.schema.json'), 'utf8'))
+const arangoSchema = JSON.parse(readFileSync(join(__dirname, 'arango/schema/arango.openapi.schema.json'), 'utf8'))
 const profilesConfig = JSON.parse(readFileSync(join(configDir, 'profiles.json'), 'utf8'))
+const toolsResolver = join(__dirname, 'tools/schema')
+const templatesDir = join(__dirname, 'config/templates')
 
 // Resolve profile: .env > profiles.json > schema defaults
 const name = profileName || profilesConfig.default
@@ -46,7 +50,7 @@ const profile = resolveProfile(baseProfile)
 
 // Create core — --debug flag overrides profile logLevel
 const logLevel = debugFlag ? 'debug' : undefined
-const core = createCore({ profile, mcpSchema, openapiSpec, connSchema, logLevel, auditFile })
+const core = createCore({ profile, mcpSchema, toolsSchema, arangoSchema, toolsResolver, templatesDir, logLevel, auditFile })
 
 // Attach transport
 if (useSSE) {

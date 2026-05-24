@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-tool-database.schema.json",
+  "title": "MCP Tool Database",
+  "description": "ArangoDB database lifecycle category scoped to the Databases tag.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "payload"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["list", "search", "describe", "call"]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": { "type": "string", "description": "OpenAPI operationId within the Databases tag." },
+        "params": { "type": "object" },
+        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
+        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
+    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
+    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
+  ],
+  "x-tool": {
+    "name": "mcp.tool.database",
+    "title": "MCP Tool Database",
+    "description": "ArangoDB database lifecycle category scoped to the Databases tag.",
+    "target": "mcp.tool.database",
+    "actions": {
+      "list":     { "handler": "categoryDatabase.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Databases-tag operation listing" },
+      "search":   { "handler": "categoryDatabase.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Databases-tag operation matches" },
+      "describe": { "handler": "categoryDatabase.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Databases-tag operation contract" },
+      "call":     { "handler": "categoryDatabase.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB Databases operation response" }
+    }
+  }
+}

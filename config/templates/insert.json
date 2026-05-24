@@ -1,0 +1,16 @@
+{
+  "category": "insert",
+  "description": "Read-only insertion helpers for choosing durable note coordinates before writing.",
+  "templates": {
+    "candidates": {
+      "query": "LET q = LOWER(TRIM(@query || \"\")) LET tag_filter = (IS_ARRAY(@tags) ? (FOR t IN @tags RETURN LOWER(t)) : []) LET type_filter = (IS_ARRAY(@type) ? (FOR t IN @type RETURN LOWER(t)) : []) FOR n IN notes LET note_tags = (IS_ARRAY(n.tags) ? n.tags : []) LET note_types = (IS_ARRAY(n.type) ? n.type : (n.type ? [n.type] : [])) LET title = LOWER(n.title || \"\") LET content = LOWER(n.content || \"\") LET title_score = q == \"\" ? 0 : (CONTAINS(title, q) ? 4 : 0) LET content_score = q == \"\" ? 0 : (CONTAINS(content, q) ? 1 : 0) LET tag_overlap = LENGTH(tag_filter) == 0 ? 0 : LENGTH(FOR t IN note_tags FILTER LOWER(t) IN tag_filter RETURN 1) LET type_overlap = LENGTH(type_filter) == 0 ? 0 : LENGTH(FOR t IN note_types FILTER LOWER(t) IN type_filter RETURN 1) LET score = title_score + content_score + tag_overlap * 3 + type_overlap * 4 + ((n.weight || 0) / 100) FILTER score > 0 SORT score DESC, n.updated_at DESC, n.created_at DESC LIMIT @limit RETURN { _id: n._id, _key: n._key, title: n.title, type: n.type, tags: n.tags, weight: n.weight, score: ROUND(score * 100) / 100, rationale: { title: title_score, content: content_score, tag_overlap: tag_overlap, type_overlap: type_overlap } }",
+      "description": "Find existing notes that should anchor a new note or edge before insert/link writes.",
+      "params": {
+        "query": { "type": "string", "default": "" },
+        "tags": { "type": "array", "default": [] },
+        "type": { "type": "array", "default": [] },
+        "limit": { "type": "int", "default": 10 }
+      }
+    }
+  }
+}

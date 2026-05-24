@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schema Roots - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Schema Roots</h1>
+      <section id="principle">
+        <h2>Principle</h2>
+        <p>The project has three root schema families. Each family owns only its own data shape. Runtime code may project these schemas, but must not move ownership into handlers.</p>
+      </section>
+
+      <section id="root-map">
+        <h2>Root Map</h2>
+        <table>
+          <thead><tr><th>Root</th><th>Owns</th><th>Canonical File</th><th>Reference</th></tr></thead>
+          <tbody>
+            <tr><td><code>mcp/</code></td><td>MCP protocol API shapes, tool descriptors, requests, responses, content envelopes.</td><td><a href="../../mcp/schema/mcp.schema.json">mcp/schema/mcp.schema.json</a></td><td><a href="../../reference/mcp/2025-11-25.schema.json">reference/mcp/2025-11-25.schema.json</a></td></tr>
+            <tr><td><code>arango/</code></td><td>Raw ArangoDB HTTP API operation shapes and operation ids.</td><td><a href="../../arango/schema/arango.openapi.schema.json">arango/schema/arango.openapi.schema.json</a></td><td><a href="../../reference/arango/community.openapi.json">reference/arango/community.openapi.json</a></td></tr>
+            <tr><td><code>tools/</code></td><td>Local MCP tool owners, custom payloads, transitions, effect metadata, and activation reachability.</td><td><a href="../../tools/schema/tools.schema.json">tools/schema/tools.schema.json</a></td><td>local owner schemas</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="owner-rule">
+        <h2>Owner Rule</h2>
+        <pre><code>mcp schema root
+  -&gt; interface shape only
+arango schema root
+  -&gt; raw API shape only
+tools schema root
+  -&gt; local tool owner truth</code></pre>
+        <p>When a field is not part of the official MCP API or the ArangoDB OpenAPI, it belongs to a reachable tool owner schema or another named data owner.</p>
+      </section>
+
+      <section id="gate-schema-root-01">
+        <h2>GATE-SCHEMA-ROOT-01 Root Ownership Holds</h2>
+        <p>A new schema file must name its root family, source reference, owning operator, downstream chapter, and proof command before it changes runtime behavior.</p>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td>Official reference schema or local tool-owner need.</td></tr>
+          <tr><td>Output artifact</td><td>Rooted schema file with one owner.</td></tr>
+          <tr><td>Owner</td><td><code>mcp/</code>, <code>arango/</code>, or <code>tools/</code>.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-schema-root-01">GATE-SCHEMA-ROOT-01</a></td></tr>
+          <tr><td>Failure route</td><td>Return to <a href="owners.html">Data Owners</a> and name the missing owner.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-tool-view.schema.json",
+  "title": "MCP Tool View",
+  "description": "ArangoSearch view and analyzer category scoped to Views and Analyzers tags.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "payload"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["list", "search", "describe", "call"]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": { "type": "string", "description": "OpenAPI operationId within Views or Analyzers tags." },
+        "params": { "type": "object" },
+        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
+        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
+    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
+    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
+  ],
+  "x-tool": {
+    "name": "mcp.tool.view",
+    "title": "MCP Tool View",
+    "description": "ArangoSearch view and analyzer category scoped to Views and Analyzers tags.",
+    "target": "mcp.tool.view",
+    "actions": {
+      "list":     { "handler": "categoryView.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "View-tag operation listing" },
+      "search":   { "handler": "categoryView.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "View-tag operation matches" },
+      "describe": { "handler": "categoryView.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "View-tag operation contract" },
+      "call":     { "handler": "categoryView.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB View operation response" }
+    }
+  }
+}

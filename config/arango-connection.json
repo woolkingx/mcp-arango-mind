@@ -111,9 +111,9 @@
           "default": 10
         },
         "logLevel": {
-          "description": "Logging verbosity. silent: no output. info: one summary line per request. debug: per-event verbose + summary.",
+          "description": "Logging verbosity. silent: no stderr output. error: failed observations only. warn: warnings/errors. info: request summaries. debug: per-event text plus summaries. trace: structured JSON records to stderr.",
           "type": "string",
-          "enum": ["silent", "info", "debug"],
+          "enum": ["silent", "error", "warn", "info", "debug", "trace"],
           "default": "info"
         }
       },

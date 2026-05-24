@@ -1,0 +1,103 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-tool-template.schema.json",
+  "title": "MCP Tool Template",
+  "description": "Template catalog discovery, lifecycle, and execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "payload"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["list", "search", "describe", "call"],
+      "description": "Small control verb for the template surface."
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "Template id '<category>.<name>' for describe and call (execute), or meta.create|meta.update|meta.remove|meta.validate for catalog ops."
+        },
+        "params": {
+          "type": "object",
+          "description": "Template bind vars for execute, or catalog op arguments for meta targets."
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Search keywords for search."
+        },
+        "category": {
+          "type": "string",
+          "description": "Optional category filter for list."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100,
+          "description": "Maximum templates returned by list and search."
+        },
+        "format": {
+          "type": "string",
+          "enum": ["json", "md"],
+          "default": "md",
+          "description": "Output format."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "search" } } },
+      "then": { "properties": { "payload": { "required": ["keywords"] } } }
+    },
+    {
+      "if": { "properties": { "action": { "const": "describe" } } },
+      "then": { "properties": { "payload": { "required": ["target"] } } }
+    },
+    {
+      "if": { "properties": { "action": { "const": "call" } } },
+      "then": { "properties": { "payload": { "required": ["target"] } } }
+    }
+  ],
+  "x-tool": {
+    "name": "mcp.tool.template",
+    "title": "MCP Template Owner",
+    "description": "Template catalog discovery, lifecycle, and execution.",
+    "target": "mcp.tool.template",
+    "actions": {
+      "list": {
+        "handler": "templateOwner.list",
+        "effect": "read",
+        "idempotent": true,
+        "openWorld": false,
+        "evidence": "Template catalog id listing"
+      },
+      "search": {
+        "handler": "templateOwner.search",
+        "effect": "read",
+        "idempotent": true,
+        "openWorld": false,
+        "evidence": "Template catalog keyword matches"
+      },
+      "describe": {
+        "handler": "templateOwner.describe",
+        "effect": "read",
+        "idempotent": true,
+        "openWorld": false,
+        "evidence": "Template catalog entry"
+      },
+      "call": {
+        "handler": "templateOwner.call",
+        "effect": "write",
+        "idempotent": false,
+        "openWorld": true,
+        "evidence": "Template execution result, catalog mutation, or validate report"
+      }
+    }
+  }
+}

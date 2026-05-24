@@ -1,17 +1,19 @@
 #!/usr/bin/env node
 // scripts/gen-community-spec.mjs
-// Generate config/arango-openapi-community.json from the official spec.
+// Generate the active community Arango OpenAPI schema from the full legacy spec.
 // Strips operations that were enterprise-only before ArangoDB 3.12.5.
 // See docs/arangodb-editions.md for the full feature list.
 //
 // Usage: node scripts/gen-community-spec.mjs [--dry-run]
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const configDir = join(__dirname, '..', 'config')
+const referenceDir = join(__dirname, '..', 'reference', 'arango')
+const activeDir = join(__dirname, '..', 'arango', 'schema')
 
 // Tags whose ALL operations are removed (formerly enterprise-only)
 const ENTERPRISE_TAGS = new Set(['Hot Backups'])
@@ -59,12 +61,12 @@ filtered.tags = (spec.tags || []).filter(t => !ENTERPRISE_TAGS.has(t.name))
 // Add generated-file marker to info
 filtered.info = {
   ...spec.info,
-  'x-generated-from': 'arango-openapi.json',
+  'x-generated-from': 'config/arango-openapi.json',
   'x-generation-note': 'Community edition spec — enterprise-only operations removed. See docs/arangodb-editions.md.',
 }
 
 // Report
-console.log(`Source: arango-openapi.json (${spec.info?.version})`)
+console.log(`Source: config/arango-openapi.json (${spec.info?.version})`)
 console.log(`Removed: ${removedOps.length} operations`)
 for (const r of removedOps) {
   console.log(`  - ${r.verb} ${r.path} (${r.operationId}) [${r.reason}]`)
@@ -76,6 +78,12 @@ if (dryRun) {
   process.exit(0)
 }
 
-const outPath = join(configDir, 'arango-openapi-community.json')
-writeFileSync(outPath, JSON.stringify(filtered, null, 2) + '\n')
-console.log(`\nWritten: ${outPath}`)
+mkdirSync(referenceDir, { recursive: true })
+mkdirSync(activeDir, { recursive: true })
+
+const referencePath = join(referenceDir, 'community.openapi.json')
+const activePath = join(activeDir, 'arango.openapi.schema.json')
+writeFileSync(referencePath, JSON.stringify(filtered, null, 2) + '\n')
+writeFileSync(activePath, JSON.stringify(filtered, null, 2) + '\n')
+console.log(`\nWritten: ${referencePath}`)
+console.log(`Written: ${activePath}`)

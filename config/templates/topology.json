@@ -1,0 +1,24 @@
+{
+  "category": "topology",
+  "description": "Curated read-only topology views over notes and edges.",
+  "templates": {
+    "neighborhood": {
+      "query": "LET relation_filter = (IS_ARRAY(@relation) ? (FOR r IN @relation RETURN LOWER(r)) : []) FOR v, e, p IN 1..@depth ANY @root edges OPTIONS { bfs: true, uniqueVertices: \"global\" } LET rel = LOWER(e.rel || e.type || e.label || \"\") FILTER LENGTH(relation_filter) == 0 OR rel IN relation_filter SORT LENGTH(p.edges) ASC, (e.weight || 0) DESC, v.created_at DESC LIMIT @limit RETURN { node: { _id: v._id, _key: v._key, title: v.title, type: v.type, tags: v.tags, weight: v.weight }, edge: { _id: e._id, _from: e._from, _to: e._to, rel: e.rel, type: e.type, label: e.label, weight: e.weight }, distance: LENGTH(p.edges), direction: e._from == @root ? \"outbound\" : (e._to == @root ? \"inbound\" : \"path\"), path: p.vertices[*]._id }",
+      "description": "Rooted relation neighborhood with edge evidence, distance, direction, and path coordinates.",
+      "params": {
+        "root": { "type": "string", "required": true },
+        "depth": { "type": "int", "default": 1 },
+        "relation": { "type": "array", "default": [] },
+        "limit": { "type": "int", "default": 20 }
+      }
+    },
+    "path": {
+      "query": "FOR v, e IN ANY SHORTEST_PATH @from TO @to edges RETURN { node: { _id: v._id, _key: v._key, title: v.title, type: v.type, tags: v.tags, weight: v.weight }, edge: e ? { _id: e._id, _from: e._from, _to: e._to, rel: e.rel, type: e.type, label: e.label, weight: e.weight } : null }",
+      "description": "Shortest relation path between two note ids with node and edge evidence.",
+      "params": {
+        "from": { "type": "string", "required": true },
+        "to": { "type": "string", "required": true }
+      }
+    }
+  }
+}

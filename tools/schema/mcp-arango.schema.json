@@ -1,0 +1,131 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-arango.schema.json",
+  "title": "MCP Arango Surface",
+  "description": "Search and execute ArangoDB OpenAPI operations without exposing hundreds of operations as separate tools.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "payload"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["search", "exec", "describe", "list", "call"],
+      "description": "Small control verb for the Arango surface. Prefer search -> exec; call remains as a compatibility alias."
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "ArangoDB OpenAPI operationId; required for describe, exec, and call."
+        },
+        "params": {
+          "type": "object",
+          "description": "Operation-specific arguments forwarded to the OpenAPI operation."
+        },
+        "query": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "\\S",
+          "description": "Whitespace-split search query for finding OpenAPI operation ids."
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "contains": { "type": "string", "pattern": "\\S" },
+          "description": "Search keywords for search. Use query for a simpler single-string entrypoint."
+        },
+        "tags": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Optional OpenAPI tag filter for list and search."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 200,
+          "default": 50,
+          "description": "Maximum operations returned by list and search."
+        },
+        "format": {
+          "type": "string",
+          "enum": ["json", "md"],
+          "default": "md",
+          "description": "Output format."
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "action": { "const": "search" } } },
+      "then": {
+        "properties": {
+          "payload": {
+            "anyOf": [
+              { "required": ["keywords"] },
+              { "required": ["query"] }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "action": { "const": "describe" } } },
+      "then": { "properties": { "payload": { "required": ["target"] } } }
+    },
+    {
+      "if": { "properties": { "action": { "const": "call" } } },
+      "then": { "properties": { "payload": { "required": ["target"] } } }
+    },
+    {
+      "if": { "properties": { "action": { "const": "exec" } } },
+      "then": { "properties": { "payload": { "required": ["target"] } } }
+    }
+  ],
+  "x-tool": {
+    "name": "mcp.arango",
+    "title": "MCP Arango Surface",
+    "description": "Search and execute ArangoDB OpenAPI operations without exposing hundreds of operations as separate tools.",
+    "target": "mcp.arango",
+    "actions": {
+      "list": {
+        "handler": "arangoSurface.list",
+        "effect": "read",
+        "idempotent": true,
+        "openWorld": false,
+        "evidence": "ArangoDB OpenAPI operation summaries"
+      },
+      "search": {
+        "handler": "arangoSurface.search",
+        "effect": "read",
+        "idempotent": true,
+        "openWorld": false,
+        "evidence": "ArangoDB OpenAPI operation matches"
+      },
+      "exec": {
+        "handler": "arangoSurface.exec",
+        "effect": "write",
+        "idempotent": false,
+        "openWorld": true,
+        "evidence": "Raw ArangoDB HTTP response"
+      },
+      "describe": {
+        "handler": "arangoSurface.describe",
+        "effect": "read",
+        "idempotent": true,
+        "openWorld": false,
+        "evidence": "ArangoDB OpenAPI operation contract"
+      },
+      "call": {
+        "handler": "arangoSurface.call",
+        "effect": "write",
+        "idempotent": false,
+        "openWorld": true,
+        "evidence": "Compatibility alias for exec"
+      }
+    }
+  }
+}

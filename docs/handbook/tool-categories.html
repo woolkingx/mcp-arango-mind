@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tool Categories - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Tool Categories</h1>
+      <section id="principle">
+        <h2>Principle</h2>
+        <p><code>mcp.tool.*</code> is the local/custom owner space. Categories follow the old <code>async/</code> split when that split names a real owner, but the handbook may split a category further when lifecycle data needs its own owner.</p>
+      </section>
+
+      <section id="target-categories">
+        <h2>Target Categories</h2>
+        <table>
+          <thead><tr><th>MCP Tool</th><th>Async Source</th><th>Owns</th></tr></thead>
+          <tbody>
+            <tr><td><code>mcp.tool.database</code></td><td><code>arango_database</code></td><td>Whitelisted OpenAPI operations tagged <code>Databases</code>.</td></tr>
+            <tr><td><code>mcp.tool.collection</code></td><td><code>arango_collection</code></td><td>Whitelisted OpenAPI operations tagged <code>Collections</code>, <code>Documents</code>, or <code>Indexes</code>.</td></tr>
+            <tr><td><code>mcp.tool.view</code></td><td><code>arango_view</code></td><td>Whitelisted OpenAPI operations tagged <code>Views</code> or <code>Analyzers</code>.</td></tr>
+            <tr><td><code>mcp.tool.graph</code></td><td><code>arango_graph</code></td><td>Whitelisted OpenAPI operations tagged <code>Graphs</code>.</td></tr>
+            <tr><td><code>mcp.tool.admin</code></td><td><code>arango_admin</code></td><td>Whitelisted OpenAPI operations tagged <code>Administration</code>, <code>Queries</code>, <code>Monitoring</code>, or <code>Tasks</code>.</td></tr>
+            <tr><td><code>mcp.tool.template</code></td><td><code>async/config/templates/*.json</code></td><td>Template catalog CRUD, parameter schema, execution, evidence.</td></tr>
+            <tr><td><code>mcp.tool.atlas</code></td><td>handbook atlas AQL profiles</td><td>Read-only knowledge atlas projections across notes, edges, topology, and readiness hints.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="module-spec-database">
+        <h2>mcp.tool.database Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>OpenAPI operation projection for the <code>Databases</code> tag.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td>ArangoDB OpenAPI <code>operationId</code> values inside the <code>Databases</code> tag whitelist.</td></tr>
+          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code> read. <code>call</code> inherits the underlying OpenAPI operation effect.</td></tr>
+          <tr><td>Forbidden</td><td>Collection/document operations, env override semantics (lives in <code>src/env.mjs</code>), and operation ids outside the category whitelist.</td></tr>
+          <tr><td>Evidence</td><td>Operation listing, operation contract, or ArangoDB operation response.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="module-spec-collection">
+        <h2>mcp.tool.collection Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>Collection CRUD, indexes, schema registration, document validation, bulk operations, import/export, stats, type tree.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td>ArangoDB OpenAPI <code>operationId</code> values inside the <code>Collections</code>, <code>Documents</code>, and <code>Indexes</code> tag whitelist.</td></tr>
+          <tr><td>Schema entry</td><td>Collection document schema validation is reached through <code>createCollection</code> and <code>updateCollectionProperties</code>. Their OpenAPI request body owns <code>schema.level</code>, <code>schema.message</code>, and <code>schema.rule</code>.</td></tr>
+          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code> read. <code>call</code> inherits the underlying OpenAPI operation effect.</td></tr>
+          <tr><td>Forbidden</td><td>Graph semantics, view config, AQL transitions, local reimplementation of Draft-4 document schema validation, and operation ids outside the category whitelist.</td></tr>
+          <tr><td>Evidence</td><td>Operation listing, operation contract, local OpenAPI payload validation, or live ArangoDB CRUD validation response for required fields, type, enum, additional properties, readback, update, replace, and delete.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="module-spec-view">
+        <h2>mcp.tool.view Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>ArangoSearch view lifecycle and search projection.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td>ArangoDB OpenAPI <code>operationId</code> values inside the <code>Views</code> and <code>Analyzers</code> tag whitelist.</td></tr>
+          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code> read. <code>call</code> inherits the underlying OpenAPI operation effect.</td></tr>
+          <tr><td>Forbidden</td><td>Collection CRUD, graph traversal, and operation ids outside the category whitelist.</td></tr>
+          <tr><td>Evidence</td><td>Operation listing, operation contract, or ArangoDB operation response.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="module-spec-graph">
+        <h2>mcp.tool.graph Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>Named graph lifecycle, edge definitions, edges, traversal, shortest path, integrity, statistics.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td>ArangoDB OpenAPI <code>operationId</code> values inside the <code>Graphs</code> tag whitelist.</td></tr>
+          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code> read. <code>call</code> inherits the underlying OpenAPI operation effect.</td></tr>
+          <tr><td>Forbidden</td><td>Document-level CRUD outside graph operations, embedding/PPR analytics, and operation ids outside the category whitelist.</td></tr>
+          <tr><td>Evidence</td><td>Operation listing, operation contract, or ArangoDB operation response.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="module-spec-admin">
+        <h2>mcp.tool.admin Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>OpenAPI operation projection for <code>Administration</code>, <code>Queries</code>, <code>Monitoring</code>, and <code>Tasks</code> tags.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td>ArangoDB OpenAPI <code>operationId</code> values inside the admin tag whitelist.</td></tr>
+          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code> read. <code>call</code> inherits the underlying OpenAPI operation effect, including AQL execution.</td></tr>
+          <tr><td>Forbidden</td><td>Template lifecycle (lives in <code>mcp.tool.template</code>), collection CRUD shortcuts, and operation ids outside the category whitelist.</td></tr>
+          <tr><td>Evidence</td><td>Operation listing, operation contract, or ArangoDB operation response.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="module-spec-atlas">
+        <h2>mcp.tool.atlas Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>Handbook-style projections over note ontology, edge topology, viewpoint coverage, and graph/view readiness hints.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td><code>atlas.index</code>, <code>atlas.focus</code>, <code>atlas.facets</code>, <code>atlas.viewpoints</code>, <code>atlas.audit</code>.</td></tr>
+          <tr><td>Transitions</td><td>All transitions are read-only AQL projections through <code>createAqlQueryCursor</code>.</td></tr>
+          <tr><td>Forbidden</td><td>Collection override, roots outside <code>notes/&lt;key&gt;</code>, collection CRUD, graph mutation, view lifecycle mutation, raw admin AQL ownership, and moving <code>node.tree</code> out of collection.</td></tr>
+          <tr><td>Evidence</td><td><code>{profile, count, results}</code> envelope plus audit recommendations for graph/view/index substrate.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="template-owner">
+        <h2>Template Owner</h2>
+        <p>The old async line mounts <code>template_execute</code> under admin and reads JSON files directly. That route may remain as an alias during migration, but template lifecycle is not admin data.</p>
+        <pre><code>mcp.tool.admin
+  -&gt; may alias template_execute
+
+mcp.tool.template
+  -&gt; list/search/describe/call
+  -&gt; create/update/remove
+  -&gt; validate params
+  -&gt; execute named template</code></pre>
+      </section>
+
+      <section id="module-spec-template">
+        <h2>mcp.tool.template Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>Template catalog, parameter schema (per-template), execution, and execution evidence. Catalog source migrates from <code>async/config/templates/*.json</code>.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td>Owner-defined keys: catalog ops <code>create</code>, <code>update</code>, <code>remove</code>, <code>validate</code>; lookup ops covered by the small verbs; <code>call</code> takes a <code>{category}.{name}</code> identifier as <code>payload.target</code>.</td></tr>
+          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code>/<code>validate</code> read. <code>create</code>/<code>update</code>/<code>remove</code> write idempotent on catalog. <code>call</code> inherits the executed template body effect.</td></tr>
+          <tr><td>Forbidden</td><td>Direct AQL/optimize/embedding/PPR analytics ownership, OpenAPI dispatch outside the template body, admin-mounted execution side effects.</td></tr>
+          <tr><td>Evidence</td><td><code>{template, count, results}</code> envelope for execution and catalog records for lifecycle actions.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="curated-template-policy">
+        <h2>Curated Template Policy</h2>
+        <p>Templates are stable intent interfaces, not an archive of old AQL snippets. A template should collapse a recurring workflow into a named target with parameters, defaults, and an evidence envelope. Substrate choices such as ArangoSearch views, named graphs, or direct collection scans may evolve behind the target without changing the caller contract.</p>
+        <table>
+          <tr><th>Template</th><th>Owns</th><th>Substrate</th></tr>
+          <tr><td><code>memory.view</code></td><td>Time-ordered notes projection with optional query, tag/type filters, and root/depth neighborhood.</td><td><code>notes</code> plus optional <code>edges</code> traversal; may later use ArangoSearch view or named graph optimization.</td></tr>
+          <tr><td><code>topology.neighborhood</code></td><td>Rooted relation neighborhood with distance, direction, path coordinates, and edge evidence.</td><td><code>edges</code> traversal over note ids; may later use a named graph after graph readiness is proven.</td></tr>
+          <tr><td><code>topology.path</code></td><td>Shortest relation path between two note ids with node and edge evidence.</td><td><code>edges</code> shortest-path traversal; graph optimization remains a substrate choice.</td></tr>
+          <tr><td><code>insert.candidates</code></td><td>Read-only placement candidates before note insertion or edge creation.</td><td><code>notes</code> scoring over query text, tags, type, and weight.</td></tr>
+          <tr><td><code>atlas.metrics</code></td><td>Atlas health snapshot: counts, orphan notes, relation counts, tag counts, and weight distribution.</td><td><code>notes</code> and <code>edges</code> aggregate reads; no optimize or decay writes.</td></tr>
+        </table>
+        <p>This chapter intentionally stays above the 200-line split checkpoint because it is one owner/gate reference for <code>mcp.tool.*</code> category boundaries.</p>
+      </section>
+
+      <section id="category-runtime-rule">
+        <h2>Runtime Rule</h2>
+        <p>Each category keeps a small verb set. The category target namespace holds detailed operations, so the MCP descriptor stays readable while the payload remains precise.</p>
+      </section>
+
+      <section id="gate-tool-category-01">
+        <h2>GATE-TOOL-CATEGORY-01 Category Owns Its Lifecycle</h2>
+        <p>A category may execute, mutate, or describe only the data nodes it owns. Cross-category aliases must name the canonical owner and remain removable.</p>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td>Async category, local custom behavior, or missing lifecycle owner.</td></tr>
+          <tr><td>Output artifact</td><td><code>mcp.tool.&lt;category&gt;</code> owner boundary.</td></tr>
+          <tr><td>Owner</td><td>One local tool category.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+          <tr><td>Failure route</td><td>Return to <a href="tool-surfaces.html">Tool Surfaces</a> and split the namespace.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Schema2Object - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Schema2Object</h1>
+      <section id="role">
+        <h2>Role</h2>
+        <p><code>schema2object</code> owns the legal mechanics for resolving <code>$ref</code>, constructing schema-backed objects, applying defaults, validating shapes, and exporting materialized data. It does not own product decisions, tool semantics, MCP protocol shape, or ArangoDB execution.</p>
+        <p>The local copied usage guide lives at <a href="schema2object.usage.md">schema2object.usage.md</a>.</p>
+      </section>
+
+      <section id="tool-owner-use">
+        <h2>Tool Owner Use</h2>
+        <pre><code>tools/schema/tools.schema.json
+  -&gt; $ref tool owner schema
+  -&gt; Loader resolves owner node
+  -&gt; ObjectTree validates command
+  -&gt; ObjectTree materializes payload defaults
+  -&gt; tool owner applies transition
+  -&gt; allowed Arango API call</code></pre>
+      </section>
+
+      <section id="api-rules">
+        <h2>API Rules</h2>
+        <table>
+          <thead><tr><th>Need</th><th>Use</th><th>Do Not</th></tr></thead>
+          <tbody>
+            <tr><td>Resolve a tool schema</td><td><code>Loader.resolve(ref)</code> and keep the returned sub-loader.</td><td>Lose <code>#</code> scope with a fresh loader.</td></tr>
+            <tr><td>Create a legal command</td><td><code>new ObjectTree(data, schema, loader)</code>.</td><td>Hand-build unchecked command records.</td></tr>
+            <tr><td>Apply defaults for handoff</td><td><code>tree.$withDefaults().$toDict()</code>.</td><td>Assume reads mutate raw data.</td></tr>
+            <tr><td>Human-friendly config keys</td><td>Use dot-key assignment through ObjectTree.</td><td>Write another unflattening implementation.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="gate-schema2object-01">
+        <h2>GATE-SCHEMA2OBJECT-01 Runtime Contract Holds</h2>
+        <pre><code>sha256sum src/lib/schema2object.mjs /home/claude/projects/schema2object/master/js/schema2object.mjs
+npm test</code></pre>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td><code>$ref</code>, schema default, or materialization requirement.</td></tr>
+          <tr><td>Output artifact</td><td>Resolved Loader / ObjectTree contract usage.</td></tr>
+          <tr><td>Owner</td><td>Schema2Object chapter.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-schema2object-01">GATE-SCHEMA2OBJECT-01</a></td></tr>
+          <tr><td>Failure route</td><td>Return to the vendored library and re-sync the contract before changing call sites.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

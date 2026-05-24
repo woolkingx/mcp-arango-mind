@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tool Surfaces - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Tool Surfaces</h1>
+      <section id="principle">
+        <h2>Principle</h2>
+        <p>The MCP-visible tool name identifies the owner root. The action stays small. Large operation catalogs are routed through <code>payload.target</code> and <code>payload.params</code>.</p>
+      </section>
+
+      <section id="target-surface">
+        <h2>Target Surface</h2>
+        <table>
+          <thead><tr><th>MCP Tool</th><th>Owner Root</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td><code>mcp.mcp</code></td><td><code>mcp/</code></td><td>Expose MCP reference metadata and small MCP-facing helpers.</td></tr>
+            <tr><td><code>mcp.arango</code></td><td><code>arango/</code></td><td>Expose raw ArangoDB API discovery and generic operation calls.</td></tr>
+            <tr><td><code>mcp.tool.*</code></td><td><code>tools/</code></td><td>Expose local/custom tool owners split by category.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="action-budget">
+        <h2>Action Budget</h2>
+        <p>Actions are control verbs, not the full operation namespace. A catalog with dozens or hundreds of operations must not become a huge enum in the MCP tool descriptor.</p>
+        <pre><code>{
+  "action": "call",
+  "payload": {
+    "target": "collection.insert",
+    "params": {}
+  }
+}</code></pre>
+      </section>
+
+      <section id="verb-set">
+        <h2>Small Verb Set</h2>
+        <table>
+          <thead><tr><th>Action</th><th>Meaning</th><th>Payload Owner</th></tr></thead>
+          <tbody>
+            <tr><td><code>list</code></td><td>List known targets in this surface.</td><td>surface root</td></tr>
+            <tr><td><code>search</code></td><td>Find targets by keyword, category, or capability.</td><td>surface root</td></tr>
+            <tr><td><code>describe</code></td><td>Return schema, gate, or metadata for one target.</td><td>target owner</td></tr>
+            <tr><td><code>call</code></td><td>Execute one target with target-owned params.</td><td>target owner</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="module-spec-mcp">
+        <h2>mcp.mcp Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>MCP reference metadata projection, tool catalog metadata, and small MCP-facing helpers. Data source is local config (tool catalog, help, capabilities), not ArangoDB.</td></tr>
+          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>.</td></tr>
+          <tr><td>Target namespace</td><td>Owner-defined metadata keys: <code>tools</code>, <code>categories</code>, <code>capabilities</code>, <code>schema</code>. No ArangoDB target.</td></tr>
+          <tr><td>Transitions</td><td>All read-only. No DB I/O.</td></tr>
+          <tr><td>Forbidden</td><td>ArangoDB API dispatch, owner transition truth, MCP protocol validation (lives in <a href="interfaces.html">Interfaces</a>).</td></tr>
+          <tr><td>Evidence</td><td>Metadata projection objects: <code>{matches, total_matches, keywords}</code> or category listing.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-surface-01">GATE-SURFACE-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="module-spec-arango">
+        <h2>mcp.arango Module Spec</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Owns</td><td>Search and execution over the raw ArangoDB OpenAPI operation catalog. Projects <a href="../../arango/schema/arango.openapi.schema.json">arango/schema/arango.openapi.schema.json</a>.</td></tr>
+          <tr><td>Actions</td><td><code>search</code>, <code>exec</code>, <code>describe</code>, <code>list</code>, <code>call</code>.</td></tr>
+          <tr><td>Target namespace</td><td>ArangoDB OpenAPI <code>operationId</code> (camelCase, e.g. <code>executeCode</code>, <code>getCollectionProperties</code>).</td></tr>
+          <tr><td>Transitions</td><td><code>search</code>/<code>list</code>/<code>describe</code> read. <code>exec</code> inherits the underlying OpenAPI operation effect. <code>call</code> is a compatibility alias for <code>exec</code>.</td></tr>
+          <tr><td>Forbidden</td><td>Domain decisions, owner transitions, response interpretation beyond formatting. Not allowed to hold business state.</td></tr>
+          <tr><td>Evidence</td><td>Raw ArangoDB HTTP response projected through <code>src/lib/json2md.mjs</code>.</td></tr>
+          <tr><td>Gate</td><td><a href="acceptance-gates.html#gate-core-02">GATE-CORE-02</a>, <a href="#gate-surface-01">GATE-SURFACE-01</a></td></tr>
+        </table>
+      </section>
+
+      <section id="current-runtime">
+        <h2>Current Runtime Boundary</h2>
+        <p>The current code exposes all three surfaces: <code>mcp.mcp</code>, <code>mcp.arango</code>, and the seven <code>mcp.tool.*</code> categories (template, database, collection, view, graph, admin, atlas). The target surface taxonomy is fully realised.</p>
+      </section>
+
+      <section id="gate-surface-01">
+        <h2>GATE-SURFACE-01 Surface Action Budget Holds</h2>
+        <p>A surface can add a new action only when it is a root-level control verb. Operation-specific behavior belongs in <code>payload.target</code> or a smaller tool category.</p>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td>Tool owner namespace or API operation catalog.</td></tr>
+          <tr><td>Output artifact</td><td>MCP-visible tool name plus small action set.</td></tr>
+          <tr><td>Owner</td><td>Surface root named by the MCP tool.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-surface-01">GATE-SURFACE-01</a></td></tr>
+          <tr><td>Failure route</td><td>Split the namespace in <a href="tool-categories.html">Tool Categories</a>.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

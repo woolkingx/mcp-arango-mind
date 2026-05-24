@@ -1,0 +1,13 @@
+{
+  "category": "atlas",
+  "description": "Curated atlas health and coverage projections.",
+  "templates": {
+    "metrics": {
+      "query": "LET note_count = LENGTH(FOR n IN notes RETURN 1) LET edge_count = LENGTH(FOR e IN edges RETURN 1) LET orphan_notes = (FOR n IN notes LET degree = LENGTH(FOR e IN edges FILTER e._from == n._id OR e._to == n._id LIMIT 1 RETURN 1) FILTER degree == 0 SORT n.created_at DESC LIMIT @limit RETURN { _id: n._id, _key: n._key, title: n.title, type: n.type, tags: n.tags, weight: n.weight }) LET relation_counts = (FOR e IN edges LET relation = e.rel || e.type || e.label || \"unknown\" COLLECT relation_name = relation WITH COUNT INTO count SORT count DESC LIMIT @limit RETURN { relation: relation_name, count: count }) LET tag_counts = (FOR n IN notes FOR tag_value IN (IS_ARRAY(n.tags) ? n.tags : []) COLLECT tag = tag_value WITH COUNT INTO count SORT count DESC LIMIT @limit RETURN { tag: tag, count: count }) LET weight_distribution = (FOR n IN notes LET layer = (n.weight || 0) >= 49 ? \"hot\" : ((n.weight || 0) >= 33 ? \"warm\" : ((n.weight || 0) >= 17 ? \"cool\" : \"cold\")) COLLECT layer_name = layer WITH COUNT INTO count SORT layer_name RETURN { layer: layer_name, count: count }) RETURN { counts: { notes: note_count, edges: edge_count, edge_density: note_count == 0 ? 0 : ROUND((edge_count / note_count) * 100) / 100 }, orphan_notes: orphan_notes, relation_counts: relation_counts, tag_counts: tag_counts, weight_distribution: weight_distribution }",
+      "description": "Atlas health snapshot: counts, orphan notes, relation counts, tag counts, and weight distribution.",
+      "params": {
+        "limit": { "type": "int", "default": 10 }
+      }
+    }
+  }
+}

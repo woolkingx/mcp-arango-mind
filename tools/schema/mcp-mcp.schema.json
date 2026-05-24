@@ -1,0 +1,63 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-mcp.schema.json",
+  "title": "MCP MCP",
+  "description": "MCP reference metadata: live tool catalog, category map, and surface roots. Read-only; no ArangoDB I/O.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["action", "payload"],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": ["list", "search", "describe"]
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "Meta key (tools|categories|surfaces) for list, or a specific tool/category/surface name for describe."
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1,
+          "description": "Search keywords for search."
+        },
+        "scope": {
+          "type": "string",
+          "enum": ["tools"],
+          "default": "tools",
+          "description": "Search scope; only 'tools' is implemented today."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 500,
+          "default": 100
+        },
+        "format": {
+          "type": "string",
+          "enum": ["json", "md"],
+          "default": "md"
+        }
+      }
+    }
+  },
+  "allOf": [
+    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
+    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
+  ],
+  "x-tool": {
+    "name": "mcp.mcp",
+    "title": "MCP Reference",
+    "description": "MCP reference metadata: live tool catalog, category map, and surface roots.",
+    "target": "mcp.mcp",
+    "actions": {
+      "list":     { "handler": "mcpMeta.list",     "effect": "read", "idempotent": true, "openWorld": false, "evidence": "Tools, categories, or surfaces listing." },
+      "search":   { "handler": "mcpMeta.search",   "effect": "read", "idempotent": true, "openWorld": false, "evidence": "Filtered tool catalog matches." },
+      "describe": { "handler": "mcpMeta.describe", "effect": "read", "idempotent": true, "openWorld": false, "evidence": "Tool, category, or surface description." }
+    }
+  }
+}

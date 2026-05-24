@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Known Risks - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="../../README.md">Quickstart</a></li>
+          <li><a href="../../CHANGELOG.md">Changelog</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Known Risks</h1>
+      <section id="risk-summary">
+        <h2>Risk Summary</h2>
+        <table>
+          <thead><tr><th>ID</th><th>Risk</th><th>Next Gate</th></tr></thead>
+          <tbody>
+            <tr><td>RISK-OWNER-01</td><td>MCP runtime could absorb ownership that belongs to tools, config, or Arango API.</td><td><a href="owners.html#gate-boundary-01">GATE-BOUNDARY-01</a></td></tr>
+            <tr><td>RISK-TOOLS-01</td><td>Five <code>mcp.tool.*</code> category owners dispatch raw OpenAPI operations via a shared whitelist; live ArangoDB coverage per category is still pending integration tests.</td><td><a href="tools.html#gate-tools-01">GATE-TOOLS-01</a></td></tr>
+            <tr><td>RISK-SURFACE-01</td><td>Resolved — target surface taxonomy (<code>mcp.mcp</code>, <code>mcp.arango</code>, <code>mcp.tool.*</code>) is the live runtime shape.</td><td><a href="tool-surfaces.html#gate-surface-01">GATE-SURFACE-01</a></td></tr>
+            <tr><td>RISK-ACTION-01</td><td>Arango or async catalogs could explode into huge action lists instead of using <code>payload.target</code>.</td><td><a href="tool-surfaces.html#gate-surface-01">GATE-SURFACE-01</a></td></tr>
+            <tr><td>RISK-MIGRATION-01</td><td>Migration rationale can be lost if external experience reports are not tied to local surface and atlas gates.</td><td><a href="roadmap.html#gate-roadmap-01">GATE-ROADMAP-01</a></td></tr>
+            <tr><td>RISK-TEMPLATE-01</td><td>Resolved — <code>mcp.tool.template</code> owns CRUD/validate/execute; legacy async <code>template_execute</code> stays as alias only.</td><td><a href="tool-categories.html#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+            <tr><td>RISK-SCHEMA2OBJECT-01</td><td>Vendored schema2object API drift can break local call sites.</td><td><a href="schema2object.html#gate-schema2object-01">GATE-SCHEMA2OBJECT-01</a></td></tr>
+            <tr><td>RISK-DOC-01</td><td>README or old pages can drift from handbook truth.</td><td><a href="acceptance-gates.html#gate-doc-01">GATE-DOC-01</a></td></tr>
+            <tr><td>RISK-PROTOCOL-01</td><td>Protocol validation can drift from official MCP request schemas.</td><td><a href="interfaces.html#gate-mcp-01">GATE-MCP-01</a></td></tr>
+            <tr><td>RISK-RUNTIME-01</td><td>Connection mutation through MCP is not active.</td><td>Add an explicit tool owner before mutation returns.</td></tr>
+            <tr><td>RISK-TRANSPORT-01</td><td><code>--sse</code> names an HTTP JSON transport, not a classic SSE stream.</td><td>Clarify before changing transport behavior.</td></tr>
+            <tr><td>RISK-TEST-01</td><td>Enterprise OpenAPI is not active in the current schema topology.</td><td>Separate active schema owner and gates first.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="migration-evidence">
+        <h2>Migration Evidence</h2>
+        <p><a href="https://github.com/PCfVW/mcp-arangodb-async/issues/2">PCfVW/mcp-arangodb-async issue #2</a> is an external evidence coordinate for the migration posture. It records the practical pressure that motivated this project direction: ArangoDB is valuable for agent systems because documents, graphs, search, and operational metadata can live in one substrate, but the MCP surface must avoid loading a large operation catalog into every interaction.</p>
+        <p>Local consequence: keep broad database capability behind searchable surfaces, move repeated workflows into templates, and expose knowledge structure through read-only atlas projections. This evidence supports <a href="tool-surfaces.html#gate-surface-01">GATE-SURFACE-01</a>, <a href="acceptance-gates.html#gate-atlas-01">GATE-ATLAS-01</a>, and <a href="roadmap.html#gate-roadmap-01">GATE-ROADMAP-01</a>.</p>
+      </section>
+
+      <section id="debugging-order">
+        <h2>Debugging Order</h2>
+        <ol>
+          <li>Fix handbook drift before chasing code symptoms.</li>
+          <li>Name the owner boundary before changing handlers.</li>
+          <li>Check whether the change belongs to <code>mcp/</code>, <code>arango/</code>, or <code>tools/</code>.</li>
+          <li>Keep current OpenAPI and MCP reference gates locked by tests.</li>
+          <li>Keep connection mutation out of MCP until it has a tool schema.</li>
+          <li>Live-test real MCP host behavior after unit gates are stable.</li>
+        </ol>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td>Open risk surface or unresolved drift.</td></tr>
+          <tr><td>Output artifact</td><td>Triaged risk row with next gate.</td></tr>
+          <tr><td>Owner</td><td>Known Risks chapter.</td></tr>
+          <tr><td>Gate</td><td>The gate named on the matching risk row.</td></tr>
+          <tr><td>Failure route</td><td>Open a new chapter or gate if no owner currently exists.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

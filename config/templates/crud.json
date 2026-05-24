@@ -1,0 +1,23 @@
+{
+  "category": "crud",
+  "description": "Generic CRUD Templates - Basic document operations",
+  "templates": {
+    "find_by_key": {
+      "query": "FOR d IN @@collection FILTER d._key == @key RETURN UNSET(d, \"_rev\")",
+      "description": "Find document by key (collection, key required)",
+      "params": {
+        "collection": { "type": "string", "default": "notes" },
+        "key": { "type": "string", "required": true }
+      }
+    },
+    "upsert": {
+      "query": "UPSERT { _key: @key } INSERT MERGE(@doc, { created_at: DATE_ISO8601(DATE_NOW()) }) UPDATE MERGE(@doc, { updated_at: DATE_ISO8601(DATE_NOW()) }) IN @@collection RETURN NEW",
+      "description": "Insert or update document by key (collection, key, doc required)",
+      "params": {
+        "collection": { "type": "string", "default": "notes" },
+        "key": { "type": "string", "required": true },
+        "doc": { "type": "object", "default": {} }
+      }
+    }
+  }
+}

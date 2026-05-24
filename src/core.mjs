@@ -3,52 +3,46 @@
 import { createBus } from './bus.mjs'
 import { createConnection } from './connection.mjs'
 import { createLogger } from './log.mjs'
-import { createDispatch } from './dispatch.mjs'
 import { createProtocol } from './protocol.mjs'
-import { saveEnv } from './env.mjs'
-import { ObjectTree } from './lib/schema2object.mjs'
+import { createMcp } from './mcp.mjs'
+import { createArangoApi } from './arango-api.mjs'
+import { createTools } from './tools.mjs'
+import { createArangoSurfaceHandlers } from './arango-surface.mjs'
+import { createTemplateOwnerHandlers } from './template-owner.mjs'
+import { createCategoryOwnerHandlers } from './tool-category-owner.mjs'
+import { createMcpMetaHandlers } from './mcp-meta.mjs'
+import { createAtlasOwnerHandlers } from './atlas-owner.mjs'
+
+const CATEGORY_DEFS = [
+  { name: 'database',   tags: ['Databases'] },
+  { name: 'collection', tags: ['Collections', 'Documents', 'Indexes'] },
+  { name: 'view',       tags: ['Views', 'Analyzers'] },
+  { name: 'graph',      tags: ['Graphs'] },
+  { name: 'admin',      tags: ['Administration', 'Queries', 'Monitoring', 'Tasks'] }
+]
 
 export function createCore(config) {
-  const { profile, mcpSchema, openapiSpec, connSchema, logLevel, auditFile } = config
+  const { profile, mcpSchema, toolsSchema, arangoSchema, logLevel, auditFile, toolsResolver, templatesDir } = config
 
   const bus = createBus()
   const conn = createConnection(profile)
   createLogger(bus, { auditFile, logLevel: logLevel || profile.logLevel })
 
-  // Connection localHandlers — bound to conn, passed to dispatch
-  // Action names match ConnectionTools.items[0].inputSchema.properties.action.enum in arango-connection.json
-  // Each action schema read from arango-connection.json ConnectionTools.actions[]
-  const connActions = connSchema.definitions.ConnectionTools.actions
-  const schemaFor = (name) => connActions.find(a => a.name === name).inputSchema
-  const localHandlers = {
-    getConfig: () => ({ database: conn.getDatabase(), url: conn.getActiveHostUrl() }),
-    setDatabase: (args) => {
-      // ObjectTree throws on construction if required: ['database'] not satisfied
-      const tree = new ObjectTree(args, schemaFor('setDatabase'))
-      conn.setDatabase(tree.database)
-      saveEnv('ARANGO_DB', tree.database)
-      return { database: conn.getDatabase(), persisted: true }
-    },
-    setAuth: (args) => {
-      const tree = new ObjectTree(args, schemaFor('setAuth'))
-      const auth = tree.token
-        ? { token: tree.token }
-        : { username: tree.username || 'root', password: tree.password || '' }
-      conn.setAuth(auth)
-      if (tree.token) saveEnv('ARANGO_TOKEN', tree.token)
-      else { saveEnv('ARANGO_USERNAME', auth.username); saveEnv('ARANGO_PASSWORD', auth.password) }
-      return { auth: tree.token ? 'bearer' : 'basic', persisted: true }
-    }
+  const mcp = createMcp(mcpSchema)
+  const arangoApi = createArangoApi(bus, conn, arangoSchema)
+  let toolsHandle = null
+  const customHandlers = {
+    ...createArangoSurfaceHandlers(arangoApi),
+    ...createTemplateOwnerHandlers(arangoApi, { templatesDir }),
+    ...createAtlasOwnerHandlers(arangoApi),
+    ...createMcpMetaHandlers(() => toolsHandle)
   }
-
-  const { getToolList, dispatchCategory, getResourceList, getCategories, getToolHelp } = createDispatch(bus, conn, openapiSpec, connSchema, localHandlers)
-  createProtocol(bus, mcpSchema, {
-    toolList: getToolList(),
-    dispatchCategory,
-    resourceList: getResourceList(),
-    getCategories,
-    getToolHelp
-  })
+  for (const def of CATEGORY_DEFS) {
+    Object.assign(customHandlers, createCategoryOwnerHandlers(arangoApi, def))
+  }
+  const tools = createTools(toolsSchema, arangoApi, toolsResolver, customHandlers)
+  toolsHandle = tools
+  createProtocol(bus, mcp, tools)
 
   async function handle(message) {
     const reqId = bus.newRequest()
@@ -59,8 +53,8 @@ export function createCore(config) {
     } catch (err) {
       return {
         jsonrpc: '2.0',
-        id: message?.id ?? null,
-        error: { code: -32603, message: err.message }
+        id: err.code ? err.id : message?.id ?? null,
+        error: { code: err.code ?? -32603, message: err.message }
       }
     }
   }

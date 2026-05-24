@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>mcp-arango-mind Handbook</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <h1>mcp-arango-mind Handbook</h1>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="../../README.md">Quickstart</a></li>
+          <li><a href="../../CHANGELOG.md">Changelog</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <section id="summary">
+        <h2>Summary</h2>
+        <p><strong>mcp-arango-mind</strong> is a schema-driven MCP server for ArangoDB. The durable topology is MCP interface to surface root to tool owners to ArangoDB API owner. Custom behavior enters as tool owners, not as hidden protocol or Arango API logic.</p>
+        <p>The current runtime exposes <code>mcp.mcp</code>, <code>mcp.arango</code>, <code>mcp.tool.template</code>, <code>mcp.tool.atlas</code>, and the five <code>mcp.tool.*</code> API categories (database, collection, view, graph, admin). The target surface split into <code>mcp.mcp</code>, <code>mcp.arango</code>, and <code>mcp.tool.*</code> chapters keeps large API and custom catalogs from becoming oversized action lists.</p>
+      </section>
+
+      <section id="usage-entry">
+        <h2>Usage Entry</h2>
+        <pre><code>node server.mjs
+node server.mjs --sse --port 8000
+npm test</code></pre>
+        <p>Public quickstart stays in <a href="../../README.md">README.md</a>. This handbook owns architecture, boundaries, gates, and migration shape.</p>
+      </section>
+
+      <section id="reader-contract">
+        <h2>Reader Contract</h2>
+        <table>
+          <thead><tr><th>Reader</th><th>Read For</th><th>Stop When</th></tr></thead>
+          <tbody>
+            <tr><td>User</td><td>What the server exposes and how to enter it.</td><td>The active MCP tool and runtime status are clear.</td></tr>
+            <tr><td>Maintainer</td><td>Owner, schema, edge, and verification gate.</td><td>The change has one owning chapter and one proof path.</td></tr>
+            <tr><td>Agent</td><td>Which artifact owns the next claim.</td><td>The next action is constrained by a chapter and gate.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="system-map">
+        <h2>System Map</h2>
+        <pre class="map"><code><span class="interface">MCP client</span>
+  -&gt; <span class="interface">server.mjs / transport / protocol</span>
+  -&gt; <span class="runtime">tools schema tree</span>
+       tools/schema/tools.schema.json
+       current: mcp.mcp, mcp.arango, mcp.tool.template, mcp.tool.atlas, mcp.tool.{database,collection,view,graph,admin}
+       target: mcp.mcp, mcp.arango, mcp.tool.*
+       command envelope: toolName/action/payload
+  -&gt; <span class="schema">ArangoDB OpenAPI owner</span>
+       arango/schema/arango.openapi.schema.json
+  -&gt; <span class="control">connection owner</span>
+       config + env + HTTP execution</code></pre>
+      </section>
+
+      <section id="chapter-map">
+        <h2>Chapter Map</h2>
+        <table>
+          <thead><tr><th>Chapter</th><th>Owns</th><th>Use When</th></tr></thead>
+          <tbody>
+            <tr><td><a href="artifact-roles.html">Artifact Roles</a></td><td>Source-of-truth boundaries.</td><td>A claim needs a home.</td></tr>
+            <tr><td><a href="topology.html">System Topology</a></td><td>Legal nodes and edges.</td><td>A path crosses owners.</td></tr>
+            <tr><td><a href="owners.html">Data Owners</a></td><td>Data owner map and forbidden ownership drift.</td><td>A field, schema, config, or state node changes.</td></tr>
+            <tr><td><a href="schema-roots.html">Schema Roots</a></td><td><code>mcp/</code>, <code>arango/</code>, and <code>tools/</code> root ownership.</td><td>A schema source or reference changes.</td></tr>
+            <tr><td><a href="interfaces.html">Interfaces</a></td><td>MCP, CLI, transport, and protocol projection.</td><td>External entrypoints change.</td></tr>
+            <tr><td><a href="tool-surfaces.html">Tool Surfaces</a></td><td>MCP-visible surface names and small action budgets.</td><td>A surface name or action shape changes.</td></tr>
+            <tr><td><a href="tools.html">Tools</a></td><td>Current runtime tool activation and implemented actions.</td><td>A tool is added, removed, or changed in code.</td></tr>
+            <tr><td><a href="tool-categories.html">Tool Categories</a></td><td><code>mcp.tool.*</code> category ownership and template split.</td><td>Async behavior migrates into local tools.</td></tr>
+            <tr><td><a href="command-envelope.html">Command Envelope</a></td><td><code>toolName/action/payload</code> shape.</td><td>Commands cross owner boundaries.</td></tr>
+            <tr><td><a href="schema2object.html">Schema2Object</a></td><td>Schema-tree runtime usage.</td><td><code>$ref</code>, defaults, or object materialization changes.</td></tr>
+            <tr><td><a href="acceptance-gates.html">Acceptance Gates</a></td><td>Proof commands and gate ids.</td><td>Closing work or reviewing risk.</td></tr>
+            <tr><td><a href="known-risks.html">Known Risks</a></td><td>Current risk triage.</td><td>Bug fixing or cleanup starts.</td></tr>
+            <tr><td><a href="roadmap.html">Roadmap</a></td><td>Future custom owner migration.</td><td>Moving <code>async/</code> behavior forward.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="sources">
+        <h2>Canonical Sources</h2>
+        <table>
+          <tr><th>Artifact</th><th>Role</th></tr>
+          <tr><td><a href="../../CLAUDE.md">CLAUDE.md</a></td><td>Local boot card and execution constraints.</td></tr>
+          <tr><td><a href="../../README.md">README.md</a></td><td>Public quickstart and product entry.</td></tr>
+          <tr><td><a href="../../CHANGELOG.md">CHANGELOG.md</a></td><td>Public change history.</td></tr>
+          <tr><td><a href="../../mcp/schema/mcp.schema.json">mcp/schema/</a></td><td>MCP API data owner.</td></tr>
+          <tr><td><a href="../../tools/schema/tools.schema.json">tools/schema/</a></td><td>Tool owner activation root.</td></tr>
+          <tr><td><a href="tool-surfaces.html">tool-surfaces.html</a></td><td>Target MCP-visible surface taxonomy.</td></tr>
+          <tr><td><a href="../../arango/schema/arango.openapi.schema.json">arango/schema/</a></td><td>ArangoDB API shape owner.</td></tr>
+          <tr><td><a href="../../tests/tools.test.mjs">tests/</a></td><td>Proof gates and regressions.</td></tr>
+        </table>
+      </section>
+
+      <section id="gate-families">
+        <h2>Gate Families</h2>
+        <ul>
+          <li><a href="acceptance-gates.html#gate-doc-01">GATE-DOC-01</a>: handbook links and shape hold.</li>
+          <li><a href="acceptance-gates.html#gate-core-01">GATE-CORE-01</a>: Node test suite passes.</li>
+          <li><a href="acceptance-gates.html#gate-core-02">GATE-CORE-02</a>: Arango API runtime matches OpenAPI.</li>
+          <li><a href="acceptance-gates.html#gate-boundary-01">GATE-BOUNDARY-01</a>: owner boundary holds.</li>
+          <li><a href="artifact-roles.html#gate-artifact-01">GATE-ARTIFACT-01</a>: claim has one artifact owner.</li>
+          <li><a href="topology.html#gate-topology-01">GATE-TOPOLOGY-01</a>: MCP, tools, and Arango API topology holds.</li>
+          <li><a href="schema-roots.html#gate-schema-root-01">GATE-SCHEMA-ROOT-01</a>: root schema ownership holds.</li>
+          <li><a href="tool-surfaces.html#gate-surface-01">GATE-SURFACE-01</a>: surface action budget holds.</li>
+          <li><a href="tools.html#gate-tools-01">GATE-TOOLS-01</a>: tool activation is reachability.</li>
+          <li><a href="tool-categories.html#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a>: category owns its lifecycle.</li>
+          <li><a href="acceptance-gates.html#gate-atlas-01">GATE-ATLAS-01</a>: atlas stays read-only.</li>
+          <li><a href="acceptance-gates.html#gate-envelope-01">GATE-ENVELOPE-01</a>: tool commands use <code>toolName/action/payload</code>.</li>
+          <li><a href="acceptance-gates.html#gate-mcp-01">GATE-MCP-01</a>: MCP schema matches reference.</li>
+          <li><a href="acceptance-gates.html#gate-schema2object-01">GATE-SCHEMA2OBJECT-01</a>: schema2object contract holds.</li>
+          <li><a href="acceptance-gates.html#gate-runtime-01">GATE-RUNTIME-01</a>: live ArangoDB checks are explicit.</li>
+          <li><a href="acceptance-gates.html#gate-log-01">GATE-LOG-01</a>: logging is leveled and stdio-safe.</li>
+          <li><a href="roadmap.html#gate-roadmap-01">GATE-ROADMAP-01</a>: async functions migrate as tool owners.</li>
+        </ul>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

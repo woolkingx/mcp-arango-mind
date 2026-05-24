@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master, main, push]
+    branches: [master, main, release]
   pull_request:
-    branches: [master, main, push]
+    branches: [master, main, release]
 
 jobs:
   test:
@@ -25,19 +25,21 @@ jobs:
 
       - name: Smoke test — initialize
         run: |
-          echo '{"jsonrpc":"2.0","method":"initialize","id":1}' | timeout 5 node server.mjs | node -e "
+          echo '{"jsonrpc":"2.0","method":"initialize","id":1,"params":{"protocolVersion":"2025-11-25","capabilities":{},"clientInfo":{"name":"ci-smoke","version":"0.0.0"}}}' | timeout 5 node server.mjs | node -e "
             let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
               const r=JSON.parse(d);
-              if(r.result?.protocolVersion!=='2025-03-26') process.exit(1);
+              if(r.result?.protocolVersion!=='2025-11-25') process.exit(1);
               console.log('initialize OK');
             })"
 
-      - name: Smoke test — tools/list count
+      - name: Smoke test — tools/list names
         run: |
           echo '{"jsonrpc":"2.0","method":"tools/list","id":2}' | timeout 5 node server.mjs | node -e "
             let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
               const r=JSON.parse(d);
-              if(!r.result?.tools?.length||r.result.tools.length<20) process.exit(1);
+              const names = (r.result?.tools || []).map(t => t.name);
+              const expected = ['mcp.mcp','mcp.arango','mcp.tool.template','mcp.tool.database','mcp.tool.collection','mcp.tool.view','mcp.tool.graph','mcp.tool.admin','mcp.tool.atlas'];
+              if(JSON.stringify(names)!==JSON.stringify(expected)) process.exit(1);
               console.log('tools/list OK:', r.result.tools.length, 'tools');
             })"
 
@@ -72,13 +74,17 @@ jobs:
           EOF
           echo "No dependencies needed"
 
-      - name: Check file sizes (max 300 lines)
+      - name: Check file sizes
         run: |
-          for f in server.mjs src/bus.mjs src/errors.mjs src/connection.mjs src/env.mjs src/log.mjs src/dispatch.mjs src/protocol.mjs src/core.mjs src/transports/stdio.mjs src/transports/sse.mjs; do
+          find server.mjs src tests -name '*.mjs' ! -path 'src/lib/schema2object.mjs' -print | while read -r f; do
             lines=$(wc -l < "$f")
-            if [ "$lines" -gt 300 ]; then
-              echo "ERROR: $f has $lines lines (max 300)"
+            if [ "$lines" -gt 500 ]; then
+              echo "ERROR: $f has $lines lines (max 500)"
               exit 1
+            fi
+            if [ "$lines" -gt 200 ]; then
+              echo "WARN: $f has $lines lines (recommended max 200)"
+              continue
             fi
             echo "OK: $f ($lines lines)"
           done

@@ -4,7 +4,8 @@
 
 **ArangoDB 3.12.5+ has full feature parity between Community and Enterprise editions.**
 
-All 253 operations in `arango-openapi.json` (v3.12.8) are available in Community Edition.
+All operations in `arango/schema/arango.openapi.schema.json` are treated as
+available to the active community runtime.
 The only runtime difference is a 100 GiB dataset size limit enforced by the license server.
 
 ---
@@ -62,11 +63,13 @@ These were enterprise-only at the AQL or startup-option level, not separate REST
 ## Generating a Legacy Community Spec
 
 If targeting ArangoDB < 3.12.5, use `scripts/gen-community-spec.mjs` to strip
-formerly-enterprise operations from `arango-openapi.json`:
+formerly-enterprise operations from `config/arango-openapi.json`:
 
 ```bash
 node scripts/gen-community-spec.mjs
-# Output: config/arango-openapi-community.json
+# Output:
+#   reference/arango/community.openapi.json
+#   arango/schema/arango.openapi.schema.json
 ```
 
 The script removes operations by tag (`Hot Backups`) and by operationId
@@ -78,4 +81,5 @@ The script removes operations by tag (`Hot Backups`) and by operationId
 
 - [ArangoDB Enterprise Edition features](https://docs.arangodb.com/stable/about-arangodb/features/enterprise-edition/)
 - [Feature parity announcement (v3.12.5)](https://docs.arangodb.com/stable/release-notes/)
-- Spec version in use: `config/arango-openapi.json` → `info.version: 3.12.8`
+- Active spec in use: `arango/schema/arango.openapi.schema.json`
+- Reference snapshot: `reference/arango/community.openapi.json`

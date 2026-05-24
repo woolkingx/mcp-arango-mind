@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceptance Gates - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Acceptance Gates</h1>
+      <section id="gate-doc-01">
+        <h2>GATE-DOC-01 Handbook Shape Holds</h2>
+        <pre><code>node scripts/handbook-link-check.mjs docs/handbook
+node scripts/handbook-parse.mjs docs/handbook/index.html
+wc -l docs/handbook/*.html</code></pre>
+      </section>
+
+      <section id="gate-core-01">
+        <h2>GATE-CORE-01 Node Test Suite Passes</h2>
+        <pre><code>npm test</code></pre>
+        <p>The suite covers MCP schema conformance, tool schema reachability, custom catalog handlers, Arango API projection, full core lifecycle, and environment-gated connection integration.</p>
+      </section>
+
+      <section id="gate-core-02">
+        <h2>GATE-CORE-02 Arango API Runtime Matches OpenAPI</h2>
+        <table>
+          <thead><tr><th>Proof</th><th>Evidence</th></tr></thead>
+          <tbody>
+            <tr><td>Operation map equals OpenAPI operation ids.</td><td><a href="../../tests/openapi-schema.test.mjs">tests/openapi-schema.test.mjs</a></td></tr>
+            <tr><td>HEAD and non-JSON bodies remain reachable.</td><td><a href="../../tests/arango-api.test.mjs">tests/arango-api.test.mjs</a></td></tr>
+            <tr><td><code>mcp.arango</code> search/exec dispatch keeps OpenAPI reachable without per-operation tools.</td><td><a href="../../tests/tools.test.mjs">tests/tools.test.mjs</a>, <a href="../../tests/messages.test.mjs">tests/messages.test.mjs</a></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="gate-boundary-01">
+        <h2>GATE-BOUNDARY-01 Owner Boundary Holds</h2>
+        <p>Any new MCP action, resource, config mutation, or custom behavior must name its data owner and proving test before implementation.</p>
+      </section>
+
+      <section id="gate-schema-root-01">
+        <h2>GATE-SCHEMA-ROOT-01 Root Ownership Holds</h2>
+        <p>Schema changes must stay under <code>mcp/</code>, <code>arango/</code>, or <code>tools/</code> according to the data shape they own.</p>
+      </section>
+
+      <section id="gate-surface-01">
+        <h2>GATE-SURFACE-01 Surface Action Budget Holds</h2>
+        <p>MCP-visible tool surfaces keep small control actions and route large catalogs through <code>payload.target</code> and <code>payload.params</code>.</p>
+      </section>
+
+      <section id="gate-tools-01">
+        <h2>GATE-TOOLS-01 Tool Activation Is Reachability</h2>
+        <p>New tools enter by reachable owner schemas under <code>tools/schema/tools.schema.json</code>. Removal is also a reachability change.</p>
+      </section>
+
+      <section id="gate-tool-category-01">
+        <h2>GATE-TOOL-CATEGORY-01 Category Owns Its Lifecycle</h2>
+        <p>Local tool categories own their data lifecycle. Template CRUD belongs to <code>mcp.tool.template</code>, not to admin metadata.</p>
+        <p><code>mcp.tool.collection</code> must keep collection document schema validation discoverable through category search and describe. Local gates prove OpenAPI payload shape; live gates prove CRUD field shape and stored data correctness through create, read, update, replace, and delete against a schema-bound collection.</p>
+        <pre><code>node --test tests/tool-category-owner.test.mjs tests/arango-api.test.mjs tests/collection-schema-live.test.mjs</code></pre>
+      </section>
+
+      <section id="gate-atlas-01">
+        <h2>GATE-ATLAS-01 Atlas Stays Read-Only</h2>
+        <p><code>mcp.tool.atlas</code> may project the <code>notes</code> and <code>edges</code> collections, topology, and readiness hints through AQL. It must reject collection overrides and roots outside <code>notes/&lt;key&gt;</code>; graph/view/index mutations stay in their owning tools.</p>
+      </section>
+
+      <section id="gate-envelope-01">
+        <h2>GATE-ENVELOPE-01 Tool Command Envelope Holds</h2>
+        <p>Tool commands use <code>toolName</code>, <code>action</code>, and object <code>payload</code>. The bus routes but does not interpret owner payloads.</p>
+      </section>
+
+      <section id="gate-mcp-01">
+        <h2>GATE-MCP-01 MCP Schema Matches Reference</h2>
+        <pre><code>node scripts/sync-mcp-schema.mjs
+node --test tests/mcp.test.mjs</code></pre>
+      </section>
+
+      <section id="gate-schema2object-01">
+        <h2>GATE-SCHEMA2OBJECT-01 Schema2Object Contract Holds</h2>
+        <pre><code>sha256sum src/lib/schema2object.mjs /home/claude/projects/schema2object/master/js/schema2object.mjs
+npm test</code></pre>
+      </section>
+
+      <section id="gate-runtime-01">
+        <h2>GATE-RUNTIME-01 Live ArangoDB Checks Are Explicit</h2>
+        <p>Live checks run only when <code>ARANGO_URL</code> or <code>.env</code> provides a real ArangoDB target.</p>
+      </section>
+
+      <section id="gate-log-01">
+        <h2>GATE-LOG-01 Logging Is Leveled And Stdio-Safe</h2>
+        <p>Logger changes must prove <code>silent</code>, <code>error</code>, <code>warn</code>, <code>info</code>, <code>debug</code>, <code>trace</code>, and audit JSONL behavior without writing non-JSON data to MCP stdout.</p>
+        <pre><code>node --test tests/log.test.mjs</code></pre>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td>Completion claim or release candidate.</td></tr>
+          <tr><td>Output artifact</td><td>Passed gate evidence linked to source.</td></tr>
+          <tr><td>Owner</td><td>Acceptance gates chapter.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-core-01">GATE-CORE-01</a></td></tr>
+          <tr><td>Failure route</td><td>Return to the owning chapter of the failing gate.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "tools.schema.json",
+  "title": "mcp-arango-mind Tools Schema",
+  "type": "object",
+  "x-tools": [
+    { "$ref": "mcp-mcp.schema.json" },
+    { "$ref": "mcp-arango.schema.json" },
+    { "$ref": "mcp-tool-template.schema.json" },
+    { "$ref": "mcp-tool-database.schema.json" },
+    { "$ref": "mcp-tool-collection.schema.json" },
+    { "$ref": "mcp-tool-view.schema.json" },
+    { "$ref": "mcp-tool-graph.schema.json" },
+    { "$ref": "mcp-tool-admin.schema.json" },
+    { "$ref": "mcp-tool-atlas.schema.json" }
+  ]
+}

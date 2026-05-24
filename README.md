@@ -1,156 +1,217 @@
 # mcp-arango-mind
 
-Schema-driven [Model Context Protocol](https://modelcontextprotocol.io/) server for [ArangoDB](https://arangodb.com/). Zero npm dependencies.
+An ArangoDB MCP server for agents that need more than a database wrapper.
 
-Exposes all ArangoDB REST API operations as MCP tools — 23 category tools generated at startup from the OpenAPI spec (252 operations grouped by domain). No hand-written tool definitions; add a new ArangoDB endpoint to the spec and it becomes a tool automatically.
+`mcp-arango-mind` turns ArangoDB into a schema-driven tool surface: discover the operation you need, inspect the contract, execute it with structured parameters, and keep higher-level knowledge workflows in templates and atlas projections instead of oversized tool lists.
 
-## Architecture
+The project is built for three jobs:
 
-Three JSON schemas drive the entire server:
+- use ArangoDB as a document, graph, and search substrate from MCP clients
+- keep the MCP surface small with `search -> describe -> exec` instead of hundreds of exposed tools
+- turn notes, edges, templates, views, and graph topology into handbook-style knowledge coordinates
 
+It has zero npm dependencies and runs on Node.js built-ins.
+
+## Why It Exists
+
+Agent database tooling has two common failure modes: every database operation becomes a separate MCP tool, or the agent has to hand-write queries without enough local context. Both scale badly.
+
+This server uses a layered surface:
+
+```text
+MCP client
+  -> small MCP tool surface
+  -> schema-owned tool owners
+  -> ArangoDB OpenAPI operation catalog
+  -> ArangoDB
 ```
-mcp-schema.json        → Protocol layer (JSON-RPC validation)
-arango-openapi.json    → Dispatch layer (252 operations → 22 category tools)
-arango-connection.json → Transport layer (connection config, retry, auth)
+
+Large catalogs stay searchable. Stable workflows become templates. Knowledge structure becomes atlas projections. The agent keeps a coordinate system instead of guessing through a giant action menu.
+
+## Current Surface
+
+| Tool | Use |
+|---|---|
+| `mcp.mcp` | Inspect the live MCP tool catalog, categories, and surface roots. |
+| `mcp.arango` | Search, describe, and execute raw ArangoDB OpenAPI operations. |
+| `mcp.tool.database` | Work with ArangoDB database lifecycle operations. |
+| `mcp.tool.collection` | Work with collections, documents, indexes, and CRUD schema gates. |
+| `mcp.tool.view` | Work with ArangoSearch views and analyzers. |
+| `mcp.tool.graph` | Work with ArangoDB graph operations. |
+| `mcp.tool.admin` | Work with administration, AQL, monitoring, and task operations. |
+| `mcp.tool.template` | List, search, validate, manage, and execute curated AQL templates. |
+| `mcp.tool.atlas` | Read handbook-style projections over notes, edges, topology, and readiness hints. |
+
+The generic ArangoDB flow is:
+
+```text
+mcp.arango search -> mcp.arango describe -> mcp.arango exec
 ```
 
-```
-Client ──stdin/SSE──▶ Protocol ──bus──▶ Dispatch ──bus──▶ Connection ──HTTP──▶ ArangoDB
-                      (validate,        (tool→REST        (queue, retry,
-                       route)            mapping)          failover, auth)
+Category tools use the same small-action style:
+
+```text
+list | search | describe | call
 ```
 
-Core modules:
-
-| File | Lines | Role |
-|------|-------|------|
-| `bus.mjs` | 45 | Message bus with request correlation |
-| `protocol.mjs` | 122 | MCP JSON-RPC handler |
-| `dispatch.mjs` | 297 | OpenAPI + ConnectionTools → category tools + HTTP dispatch |
-| `connection.mjs` | 188 | Connection pool, retry, failover, auth |
-| `errors.mjs` | 98 | Typed error hierarchy (ArangoError, HttpError, NetworkError) |
-| `log.mjs` | 58 | Per-request summary + per-event debug logging |
-| `env.mjs` | 103 | `.env` loader + config cascade |
-| `core.mjs` | 73 | Assembly: wire all components + Connection local handlers |
-| `server.mjs` | 56 | CLI entry: parse args, load schemas, start transport |
-| `lib/schema2object.mjs` | 487 | JSON Schema → object class runtime (ObjectTree) |
+The target operation, template, or atlas profile lives in `payload.target`.
 
 ## Quick Start
 
 ```bash
-# 1. Clone
-git clone https://github.com/your-org/mcp-arango-mind.git
+git clone https://github.com/woolkingx/mcp-arango-mind.git
 cd mcp-arango-mind
 
-# 2. Configure
 cp .env.example .env
-# Edit .env with your ArangoDB connection details
+# Edit .env with your ArangoDB connection details.
 
-# 3. Run (stdio transport — for MCP clients)
 node server.mjs
+```
 
-# 4. Run (HTTP transport — for web clients)
+No `npm install` is required.
+
+For HTTP transport:
+
+```bash
 node server.mjs --sse --port 8000
 ```
 
-No `npm install` needed. The project uses only Node.js built-in modules.
-
 ## Configuration
 
-### Config Cascade
+The connection cascade is:
 
-Priority (highest wins):
+```text
+CLI flags
+  -> environment variables
+  -> .env
+  -> config/profiles.json
+  -> config/arango-connection.json schema defaults
+```
 
-1. **CLI flags** — `--debug` forces `logLevel: debug`
-2. **Environment variables** — `ARANGO_URL`, `ARANGO_DB`, etc.
-3. **`.env` file** — loaded at startup
-4. **`config/profiles.json`** — named profiles
-5. **`config/arango-connection.json`** — schema defaults
-
-### Environment Variables
+Common environment variables:
 
 | Variable | Default | Description |
-|----------|---------|-------------|
-| `ARANGO_URL` | `http://127.0.0.1:8529` | ArangoDB server URL |
-| `ARANGO_DB` | `_system` | Database name |
-| `ARANGO_USERNAME` | `root` | Basic auth username |
-| `ARANGO_PASSWORD` | *(empty)* | Basic auth password |
-| `ARANGO_TOKEN` | — | Bearer token (overrides username/password) |
-| `ARANGO_LOG_LEVEL` | `info` | Logging: `silent`, `info`, `debug` |
+|---|---|---|
+| `ARANGO_URL` | `http://127.0.0.1:8529` | ArangoDB server URL. |
+| `ARANGO_DB` | `_system` | Database name. |
+| `ARANGO_USERNAME` | `root` | Basic auth username. |
+| `ARANGO_PASSWORD` | empty | Basic auth password. |
+| `ARANGO_TOKEN` | unset | Bearer token; overrides username and password. |
+| `ARANGO_LOG_LEVEL` | `info` | `silent`, `error`, `warn`, `info`, `debug`, or `trace`. |
 
-### CLI Flags
+Useful CLI flags:
 
+```text
+--profile <name>    Select profile from config/profiles.json
+--debug             Force debug logging
+--sse               Use HTTP JSON transport
+--port <number>     HTTP port, default 8000
+--host <address>    HTTP bind address, default 127.0.0.1
+--audit <file>      Write structured JSON audit events
 ```
---profile <name>    Select profile from config/profiles.json (default: "local")
---debug             Force log level to debug
---sse               Use HTTP transport instead of stdio
---port <number>     HTTP port (default: 8000)
---host <address>    HTTP bind address (default: 127.0.0.1)
---audit <file>      Write structured JSON audit log to file
---enterprise        Use full spec (arango-openapi.json) instead of community spec
+
+## Example Calls
+
+Search the ArangoDB OpenAPI catalog:
+
+```json
+{
+  "action": "search",
+  "payload": {
+    "query": "collection create"
+  }
+}
 ```
 
-### Connection Options
+Execute a known operation:
 
-All options defined in `config/arango-connection.json` with JSON Schema defaults:
+```json
+{
+  "action": "exec",
+  "payload": {
+    "target": "createCollection",
+    "params": {
+      "name": "notes",
+      "type": 2
+    }
+  }
+}
+```
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `url` | string \| string[] | `http://127.0.0.1:8529` | Server URL(s) |
-| `database` | string | `_system` | Database name |
-| `auth` | object | `{username:"root",password:""}` | Credentials |
-| `poolSize` | integer | `3` | Max concurrent requests |
-| `timeout` | integer | `0` | Request timeout ms (0 = none) |
-| `maxRetries` | integer | `0` | Retries on network error |
-| `retryOnConflict` | integer | `0` | Retries on write-write conflict |
-| `loadBalancing` | string | `NONE` | `NONE`, `ONE_RANDOM`, `ROUND_ROBIN` |
-| `logLevel` | string | `info` | `silent`, `info`, `debug` |
+Run a curated template:
 
-## Logging
+```json
+{
+  "action": "call",
+  "payload": {
+    "target": "memory.view",
+    "params": {
+      "query": "handbook",
+      "tags": ["knowledge-organization"],
+      "limit": 10
+    }
+  }
+}
+```
 
-Three levels:
+Read an atlas projection:
 
-- **`silent`** — no stderr output
-- **`info`** — one summary line per request:
-  ```
-  req_1 tools/call listCollections → 126ms [validate:1ms dispatch:122ms route:124ms]
-  ```
-- **`debug`** — per-event verbose + summary:
-  ```
-  [2026-03-08T03:48:26.186Z][req_1][validate] completed 0ms
-  [2026-03-08T03:48:26.192Z][req_1][dispatch] completed 121ms
-  [2026-03-08T03:48:26.192Z][req_1][route] completed 121ms
-  req_1 tools/call getVersion → 127ms [validate:5ms dispatch:121ms route:121ms]
-  ```
+```json
+{
+  "action": "call",
+  "payload": {
+    "target": "atlas.index",
+    "params": {
+      "root": "notes/root",
+      "depth": 2
+    }
+  }
+}
+```
 
-Audit log (`--audit <file>`) writes structured JSON per event regardless of log level.
+MCP clients send these payloads through `tools/call` with the corresponding tool name, such as `mcp.arango`, `mcp.tool.template`, or `mcp.tool.atlas`.
 
-## MCP Resources
+## Handbook
 
-Beyond tools, the server exposes discoverable resources:
+The public README is the quickstart and product entry. Architecture truth lives in the handbook:
 
-| URI | Description |
-|-----|-------------|
-| `tool://categories` | All 23 tool categories with tool counts |
-| `tool://help/<toolName>` | Per-tool help: parameters, HTTP method, path |
+- [Handbook index](docs/handbook/index.html)
+- [Tool surfaces](docs/handbook/tool-surfaces.html)
+- [Tool categories](docs/handbook/tool-categories.html)
+- [Known risks](docs/handbook/known-risks.html)
+- [Roadmap](docs/handbook/roadmap.html)
+- [Changelog](CHANGELOG.md)
 
-## Testing
+The handbook records owner boundaries, schema roots, topology, acceptance gates, migration rationale, and the atlas design.
+
+## Verification
 
 ```bash
-# All tests (unit + integration)
 npm test
-
-# Integration tests require a running ArangoDB instance.
-# Configure via .env or environment variables.
-# Tests skip gracefully if ARANGO_URL is not set.
+node scripts/handbook-link-check.mjs docs/handbook
+node scripts/handbook-parse.mjs docs/handbook/index.html
 ```
 
-## Project Constraints
+Live ArangoDB checks use the connection from `.env` or environment variables. Tests that require ArangoDB skip when no live connection is configured.
 
-- Zero npm dependencies — Node.js built-ins only
-- Every source file under 300 lines (enforced by CI)
-- All defaults from JSON Schema — no hardcoded values in code
+## Project Status
+
+Current release line: `0.2.0`.
+
+Runtime boundary:
+
 - Node.js 22+
+- zero npm dependencies
+- MCP stdio transport by default
+- HTTP JSON transport via `--sse`
+- ArangoDB operation contracts projected from `arango/schema/arango.openapi.schema.json`
+- tool activation projected from `tools/schema/tools.schema.json`
+
+File-size discipline:
+
+- project-owned `.mjs` files stay under 500 lines
+- 200 lines is the recommended split checkpoint
+- vendored `src/lib/schema2object.mjs` follows its sync gate
 
 ## License
 

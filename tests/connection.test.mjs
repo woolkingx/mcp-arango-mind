@@ -45,6 +45,13 @@ describe('Connection: config validation', { skip: SKIP }, () => {
   it('rejects invalid loadBalancing value', () => {
     assert.throws(() => createConnection(cfg({ loadBalancing: 'INVALID' })))
   })
+
+  it('accepts all schema-owned log levels', () => {
+    for (const logLevel of ['silent', 'error', 'warn', 'info', 'debug', 'trace']) {
+      const conn = createConnection(cfg({ logLevel }))
+      conn.close()
+    }
+  })
 })
 
 describe('Connection: real HTTP requests', { skip: SKIP }, () => {

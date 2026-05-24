@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tools - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Tools</h1>
+      <section id="principle">
+        <h2>Principle</h2>
+        <p>This chapter records what the current runtime actually exposes. Target naming and category design live in <a href="tool-surfaces.html">Tool Surfaces</a> and <a href="tool-categories.html">Tool Categories</a>.</p>
+      </section>
+
+      <section id="current-runtime">
+        <h2>Current Runtime</h2>
+        <table>
+          <thead><tr><th>Tool</th><th>Actions</th><th>Owner Type</th><th>Schema</th></tr></thead>
+          <tbody>
+            <tr><td><code>mcp.mcp</code></td><td><code>list</code>, <code>search</code>, <code>describe</code></td><td>MCP reference metadata owner (<a href="tool-surfaces.html#module-spec-mcp">spec</a>)</td><td><a href="../../tools/schema/mcp-mcp.schema.json">tools/schema/mcp-mcp.schema.json</a></td></tr>
+            <tr><td><code>mcp.arango</code></td><td><code>search</code>, <code>exec</code>, <code>describe</code>, <code>list</code>, <code>call</code></td><td>OpenAPI search/exec owner (<a href="tool-surfaces.html#module-spec-arango">spec</a>)</td><td><a href="../../tools/schema/mcp-arango.schema.json">tools/schema/mcp-arango.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.template</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Template catalog owner (<a href="tool-categories.html#module-spec-template">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-template.schema.json">tools/schema/mcp-tool-template.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.database</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Database category owner (<a href="tool-categories.html#module-spec-database">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-database.schema.json">tools/schema/mcp-tool-database.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.collection</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Collection category owner (<a href="tool-categories.html#module-spec-collection">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-collection.schema.json">tools/schema/mcp-tool-collection.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.view</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>View category owner (<a href="tool-categories.html#module-spec-view">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-view.schema.json">tools/schema/mcp-tool-view.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.graph</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Graph category owner (<a href="tool-categories.html#module-spec-graph">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-graph.schema.json">tools/schema/mcp-tool-graph.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.admin</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Admin category owner (<a href="tool-categories.html#module-spec-admin">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-admin.schema.json">tools/schema/mcp-tool-admin.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.atlas</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Atlas projection owner (<a href="tool-categories.html#module-spec-atlas">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-atlas.schema.json">tools/schema/mcp-tool-atlas.schema.json</a></td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="target-links">
+        <h2>Target Links</h2>
+        <table>
+          <thead><tr><th>Target</th><th>Owning Chapter</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td><code>mcp.mcp</code>, <code>mcp.arango</code>, <code>mcp.tool.*</code></td><td><a href="tool-surfaces.html">Tool Surfaces</a></td><td>handbook target</td></tr>
+            <tr><td><code>mcp.tool.database</code> through <code>mcp.tool.atlas</code></td><td><a href="tool-categories.html">Tool Categories</a></td><td>handbook target</td></tr>
+            <tr><td><code>mcp/</code>, <code>arango/</code>, <code>tools/</code></td><td><a href="schema-roots.html">Schema Roots</a></td><td>schema root map</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="owner-contract">
+        <h2>Owner Contract</h2>
+        <pre><code>tools/schema/tools.schema.json
+  -&gt; $ref tool owner schema
+     -&gt; tool id
+     -&gt; actions
+     -&gt; object payload shape
+     -&gt; effect and evidence metadata
+     -&gt; allowed ArangoDB API operation ids</code></pre>
+      </section>
+
+      <section id="runtime-path">
+        <h2>Runtime Path</h2>
+        <pre><code>tools/list
+  -&gt; resolve reachable tool schemas
+  -&gt; project MCP Tool list
+
+tools/call
+  -&gt; validate { action, payload }
+  -&gt; resolve action operationId or custom handler
+  -&gt; project payload to the owned executor
+  -&gt; format result</code></pre>
+      </section>
+
+      <section id="gate-tools-01">
+        <h2>GATE-TOOLS-01 Tool Activation Is Reachability</h2>
+        <p>Adding or removing a tool owner is a <code>$ref</code> reachability change plus tests proving list/call behavior.</p>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td>Reachable schema under <code>tools/schema/tools.schema.json</code>.</td></tr>
+          <tr><td>Output artifact</td><td>Implemented MCP tool list and callable action.</td></tr>
+          <tr><td>Owner</td><td>Current tool runtime.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-tools-01">GATE-TOOLS-01</a></td></tr>
+          <tr><td>Failure route</td><td>Return to <a href="tool-surfaces.html">Tool Surfaces</a> before changing runtime shape.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

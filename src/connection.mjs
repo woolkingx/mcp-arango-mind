@@ -1,6 +1,6 @@
 /**
  * Transport layer for ArangoDB — queue, retry, failover, auth.
- * Replaces pool.mjs. Ported from arangojs connection.ts, simplified for ES modules.
+ * Ported from arangojs connection.ts, simplified for ES modules.
  *
  * Public API: createConnection(config) → { request, close, getActiveHostUrl, setAuth, setTransactionId }
  * request(method, path, opts?) → { status, data }
@@ -43,7 +43,7 @@ export function createConnection(config = {}) {
   const connSchema = { $ref: '#/definitions/ConnectionConfig', definitions: schema.definitions };
   // Validate + apply schema defaults — no hardcoded values needed
   const tree = new ObjectTree(config, connSchema);
-  const cfg = tree.withDefaults().toDict();
+  const cfg = tree.$withDefaults().$toDict();
 
   const rawUrls = Array.isArray(cfg.url) ? cfg.url : [cfg.url];
   const hostUrls = rawUrls.map(normalizeUrl);
@@ -159,7 +159,7 @@ export function createConnection(config = {}) {
           // Write-write conflict retry (errorNum 1200)
           if (result.data?.error === true && result.data?.errorNum === ERROR_ARANGO_CONFLICT
               && conflicts < effectiveConflictRetries) { conflicts++; continue; }
-          // Return as-is — dispatch.mjs handles ArangoDB error responses
+          // Return as-is — callers decide whether ArangoDB error data is a tool error.
           return { status: result.status, data: result.data };
         }
       } finally { releaseSlot(); }

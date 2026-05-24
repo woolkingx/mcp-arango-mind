@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Roadmap - mcp-arango-mind</title>
+  <link rel="stylesheet" href="handbook.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar" aria-labelledby="handbook-index">
+      <h2 id="handbook-index">Index</h2>
+      <nav aria-label="Handbook chapters">
+        <ol>
+          <li><a href="index.html">Handbook Home</a></li>
+          <li><a href="../../README.md">Quickstart</a></li>
+          <li><a href="../../CHANGELOG.md">Changelog</a></li>
+          <li><a href="artifact-roles.html">Artifact Roles</a></li>
+          <li><a href="topology.html">System Topology</a></li>
+          <li><a href="owners.html">Data Owners</a></li>
+          <li><a href="schema-roots.html">Schema Roots</a></li>
+          <li><a href="interfaces.html">Interfaces</a></li>
+          <li><a href="tool-surfaces.html">Tool Surfaces</a></li>
+          <li><a href="tools.html">Tools</a></li>
+          <li><a href="tool-categories.html">Tool Categories</a></li>
+          <li><a href="command-envelope.html">Command Envelope</a></li>
+          <li><a href="schema2object.html">Schema2Object</a></li>
+          <li><a href="acceptance-gates.html">Acceptance Gates</a></li>
+          <li><a href="known-risks.html">Known Risks</a></li>
+          <li><a href="roadmap.html">Roadmap</a></li>
+        </ol>
+      </nav>
+    </aside>
+
+    <main class="content">
+      <h1>Roadmap</h1>
+      <section id="current-boundary">
+        <h2>Current Boundary</h2>
+        <p>The current runtime has landed the split surface: <code>mcp.mcp</code>, <code>mcp.arango</code>, and <code>mcp.tool.*</code>. The roadmap now focuses on deepening templates, atlas projections, graph/view readiness, and live ArangoDB proof coverage without widening the MCP action surface.</p>
+        <pre><code>interface owner
+  -&gt; surface root
+  -&gt; tool owners
+  -&gt; ArangoDB API owner</code></pre>
+      </section>
+
+      <section id="custom-owner-shape">
+        <h2>Custom Owner Shape</h2>
+        <pre><code>tools/schema/tools.schema.json
+  -&gt; $ref custom tool owner
+     -&gt; owned data
+     -&gt; command envelope: toolName/action/payload
+     -&gt; legal transition
+     -&gt; allowed ArangoDB API calls
+     -&gt; evidence output</code></pre>
+      </section>
+
+      <section id="async-migration-source">
+        <h2>Async Migration Source</h2>
+        <p><a href="https://github.com/PCfVW/mcp-arangodb-async/issues/2">PCfVW/mcp-arangodb-async issue #2</a> is the external migration-rationale coordinate: preserve the ArangoDB multi-model advantage while avoiding large always-loaded MCP tool catalogs.</p>
+        <table>
+          <thead><tr><th>Candidate Owner</th><th>Async Evidence</th><th>Migration Rule</th></tr></thead>
+          <tbody>
+            <tr><td>Knowledge notes</td><td><code>async/config/schemas/notes.json</code></td><td>Move as owned note schema, payloads, transitions, and evidence.</td></tr>
+            <tr><td>Tags</td><td><code>async/config/schemas/tags.json</code></td><td>Keep aliases, counts, and embedding fields under one owner.</td></tr>
+            <tr><td>Tag edges</td><td><code>async/config/schemas/tag_edges.json</code></td><td>Do not mix graph edge semantics into Arango API owner.</td></tr>
+            <tr><td>Access logs</td><td><code>async/config/schemas/access_logs.json</code></td><td>Behavior signals are observability data, not MCP protocol data.</td></tr>
+            <tr><td>Graph intelligence</td><td><code>async/mcp_arangodb_async/admin/optimize/*.py</code></td><td>Operators become tool owner transitions.</td></tr>
+            <tr><td>Templates</td><td><code>async/config/templates/*.json</code></td><td>Templates need owner, parameter schema, and proof gate.</td></tr>
+            <tr><td>Atlas</td><td>handbook atlas AQL profiles</td><td>Keep <code>atlas.xxx</code> as read-only projections; graph/view/index changes stay in graph, view, and collection owners.</td></tr>
+            <tr><td>Discovery</td><td><code>async/config/tools.json</code>, <code>async/config/help.json</code></td><td>Enhance interface projection; tool truth still belongs to schemas.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="surface-migration-order">
+        <h2>Surface Migration Order</h2>
+        <ol>
+          <li>Keep this handbook target as the source of truth.</li>
+          <li>Introduce <code>mcp.mcp</code> and <code>mcp.arango</code> with small verbs.</li>
+          <li>Split async categories into <code>mcp.tool.*</code> owner schemas.</li>
+          <li>Create <code>mcp.tool.template</code> before adding template CRUD.</li>
+          <li>Leave old names as temporary aliases only when tests require migration safety.</li>
+        </ol>
+      </section>
+
+      <section id="async-migration-order">
+        <h2>Async Migration Order</h2>
+        <ol>
+          <li>Declare the owner schema first.</li>
+          <li>Keep actions small and move operation names into <code>payload.target</code>.</li>
+          <li>Add fixtures and proof gates.</li>
+          <li>Move operator code behind the owner transition.</li>
+          <li>Expose through MCP/CLI as interface projection.</li>
+        </ol>
+      </section>
+
+      <section id="gate-roadmap-01">
+        <h2>GATE-ROADMAP-01 Async Functions Migrate As Tool Owners</h2>
+        <p>Before migrating an <code>async/</code> function, the change must name the tool owner, owned schema, legal transitions, command envelope, action payload, allowed ArangoDB API calls, evidence output, and proving tests.</p>
+      </section>
+
+      <section id="chapter-checkpoint">
+        <h2>Chapter Checkpoint</h2>
+        <table>
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Input artifact</td><td>Async behavior or future custom owner candidate.</td></tr>
+          <tr><td>Output artifact</td><td>Migration step with named owner and gate.</td></tr>
+          <tr><td>Owner</td><td>Roadmap chapter.</td></tr>
+          <tr><td>Gate</td><td><a href="#gate-roadmap-01">GATE-ROADMAP-01</a></td></tr>
+          <tr><td>Failure route</td><td>Return to <a href="tool-surfaces.html">Tool Surfaces</a> or <a href="tool-categories.html">Tool Categories</a> before adding migration tasks.</td></tr>
+        </table>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

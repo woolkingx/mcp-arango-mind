@@ -1,0 +1,19 @@
+{
+  "category": "memory",
+  "description": "Curated memory read views over notes and optional graph neighborhood.",
+  "templates": {
+    "view": {
+      "query": "LET q = LOWER(TRIM(@query || \"\")) LET tag_filter = (IS_ARRAY(@tags) ? (FOR t IN @tags RETURN LOWER(t)) : []) LET type_filter = (IS_ARRAY(@type) ? (FOR t IN @type RETURN LOWER(t)) : []) LET use_root = @root != null AND @root != \"\" LET related_rows = (FOR start IN (use_root ? [@root] : []) FOR v, e, p IN 1..@depth ANY start edges OPTIONS { bfs: true, uniqueVertices: \"global\" } RETURN { id: v._id, distance: LENGTH(p.edges), edge_weight: e.weight || 0 }) LET related_ids = UNIQUE(APPEND(related_rows[*].id, use_root ? [@root] : [])) FOR n IN notes LET note_tags = (IS_ARRAY(n.tags) ? n.tags : []) LET note_types = (IS_ARRAY(n.type) ? n.type : (n.type ? [n.type] : [])) LET title = LOWER(n.title || \"\") LET content = LOWER(n.content || \"\") LET title_score = q == \"\" ? 0 : (CONTAINS(title, q) ? 3 : 0) LET content_score = q == \"\" ? 0 : (CONTAINS(content, q) ? 1 : 0) LET tag_query_score = q == \"\" ? 0 : LENGTH(FOR t IN note_tags FILTER CONTAINS(LOWER(t), q) RETURN 1) * 2 LET query_score = title_score + content_score + tag_query_score LET tag_score = LENGTH(tag_filter) == 0 ? 0 : LENGTH(FOR t IN note_tags FILTER LOWER(t) IN tag_filter RETURN 1) LET type_score = LENGTH(type_filter) == 0 ? 0 : LENGTH(FOR t IN note_types FILTER LOWER(t) IN type_filter RETURN 1) LET related = FIRST(FOR r IN related_rows FILTER r.id == n._id SORT r.distance ASC RETURN r) LET distance = n._id == @root ? 0 : related.distance FILTER q == \"\" OR query_score > 0 FILTER LENGTH(tag_filter) == 0 OR tag_score > 0 FILTER LENGTH(type_filter) == 0 OR type_score > 0 FILTER !use_root OR n._id IN related_ids LET score = query_score + tag_score * 2 + type_score * 2 + ((n.weight || 0) / 100) + (use_root && distance != null ? (10 - distance) : 0) SORT (@sort == \"weight\" ? (n.weight || 0) : null) DESC, (@sort == \"relevance\" ? score : null) DESC, n.created_at DESC LIMIT @limit RETURN { _id: n._id, _key: n._key, title: n.title, content: SUBSTRING(n.content || \"\", 0, 240), tags: n.tags, type: n.type, weight: n.weight, created_at: n.created_at, updated_at: n.updated_at, score: ROUND(score * 100) / 100, source: use_root ? \"related\" : (q != \"\" ? \"query\" : ((LENGTH(tag_filter) > 0 OR LENGTH(type_filter) > 0) ? \"filter\" : \"recent\")), distance: distance }",
+      "description": "Time-ordered notes view with optional query, tags, type, root/depth neighborhood, and sort mode.",
+      "params": {
+        "query": { "type": "string", "default": "" },
+        "tags": { "type": "array", "default": [] },
+        "type": { "type": "array", "default": [] },
+        "root": { "type": "string", "default": "" },
+        "depth": { "type": "int", "default": 1 },
+        "limit": { "type": "int", "default": 20 },
+        "sort": { "type": "string", "default": "recent" }
+      }
+    }
+  }
+}
