@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-collection.schema.json",
   "title": "MCP Tool Collection",
-  "description": "search_tools first for params. Collection: insert(insert document) find(find by key or filter) update(update by key) remove(remove by key) insert_with_validation(insert with ref validation) list(list collections) bulk_insert(batch insert) bulk_update(batch update) import(import from file) export(export to file) create(create collection) stats(collection statistics) drop(drop collection) truncate(remove all docs) backup(backup data) node_tree(render type-field hierarchy as tree) | Index: list_indexes create_index delete_index | Schema: get_schema create_schema validate_document validate_references",
+  "description": "Collection actions currently callable through this tool: insert, find, update, remove, insert_with_validation, list, bulk_insert, list_indexes, create_index, delete_index, get_schema, validate_document, create, stats, drop, truncate. Use mcp.help get for explicit unavailable pages for legacy async actions.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -180,7 +180,7 @@
   "$defs": {
     "tool": {
       "title": "MCP Tool Collection",
-      "description": "search_tools first for params. Collection: insert(insert document) find(find by key or filter) update(update by key) remove(remove by key) insert_with_validation(insert with ref validation) list(list collections) bulk_insert(batch insert) bulk_update(update docs) import(import from file) export(export data) create(create collection) stats(collection statistics) drop(drop collection) truncate(remove all docs) backup(backup data) node_tree(render type-field hierarchy as tree) | Index: list_indexes create_index delete_index | Schema: get_schema create_schema validate_document validate_references",
+      "description": "Collection actions currently callable through this tool: insert, find, update, remove, insert_with_validation, list, bulk_insert, list_indexes, create_index, delete_index, get_schema, validate_document, create, stats, drop, truncate. Use mcp.help get for explicit unavailable pages for legacy async actions.",
       "const": "mcp.tool.collection"
     },
     "actions": {

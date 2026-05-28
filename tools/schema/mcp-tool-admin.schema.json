@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-admin.schema.json",
   "title": "MCP Tool Admin",
-  "description": "search_tools first for params. Admin: aql_query(execute raw AQL) aql_explain(explain query plan) aql_profile(profile query stats) aql_build(build AQL from structured params) template_execute(execute named template) sync_run(sync tags from notes) optimize_run(optimize edge weights) quality_check(graph quality metrics) embedding_run(tag embedding ops) ppr_run(Personalized PageRank)",
+  "description": "Admin actions currently callable through this tool: aql_query, aql_explain, aql_profile. Use mcp.help get for explicit unavailable pages for legacy async actions.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -150,7 +150,7 @@
   "$defs": {
     "tool": {
       "title": "MCP Tool Admin",
-      "description": "search_tools first for params. Admin: aql_query(execute raw AQL) aql_explain(explain query plan) aql_profile(profile query stats) aql_build(build AQL from structured params) template_execute(execute named template) sync_run(sync tags from notes) optimize_run(optimize edge weights) quality_check(graph quality metrics) embedding_run(tag embedding ops) ppr_run(Personalized PageRank)",
+      "description": "Admin actions currently callable through this tool: aql_query, aql_explain, aql_profile. Use mcp.help get for explicit unavailable pages for legacy async actions.",
       "const": "mcp.tool.admin"
     },
     "actions": {

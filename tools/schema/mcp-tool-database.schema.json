@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-database.schema.json",
   "title": "MCP Tool Database",
-  "description": "search_tools first for params. Database: list(list databases) get_active(current database) get_focused(alias for get_active) switch(switch database profile) get_resolution(profile resolution chain) backup(backup collections) restore(restore from backup)",
+  "description": "Database actions currently callable through this tool: list, get_active, get_focused. Use mcp.help get for explicit unavailable pages for legacy async actions.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -86,7 +86,7 @@
   "$defs": {
     "tool": {
       "title": "MCP Tool Database",
-      "description": "search_tools first for params. Database: list(list databases) get_active(current database) get_focused(alias for get_active) switch(switch database profile) get_resolution(profile resolution chain) backup(backup collections) restore(restore from backup)",
+      "description": "Database actions currently callable through this tool: list, get_active, get_focused. Use mcp.help get for explicit unavailable pages for legacy async actions.",
       "const": "mcp.tool.database"
     },
     "actions": {

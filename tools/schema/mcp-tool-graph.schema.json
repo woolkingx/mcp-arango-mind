@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-graph.schema.json",
   "title": "MCP Tool Graph",
-  "description": "search_tools first for params. Graph: create(create named graph) list(list graphs) add_vertex_collection(add vertex collection) add_edge_definition(add edge definition) add_edge(insert edge) traverse(graph traversal) shortest_path(find shortest path) backup(backup graph) restore(restore graph) backup_named(backup all named graphs) validate_integrity(check graph integrity) statistics(graph statistics)",
+  "description": "Graph actions currently callable through this tool: create, list, add_vertex_collection, add_edge_definition, add_edge. Use mcp.help get for explicit unavailable pages for legacy async actions.",
   "type": "object",
   "additionalProperties": false,
   "required": [
@@ -206,7 +206,7 @@
   "$defs": {
     "tool": {
       "title": "MCP Tool Graph",
-      "description": "search_tools first for params. Graph: create(create named graph) list(list graphs) add_vertex_collection(add vertex collection) add_edge_definition(add edge definition) add_edge(insert edge) traverse(graph traversal) shortest_path(find shortest path) backup(backup graph) restore(restore graph) backup_named(backup all named graphs) validate_integrity(check graph integrity) statistics(graph statistics)",
+      "description": "Graph actions currently callable through this tool: create, list, add_vertex_collection, add_edge_definition, add_edge. Use mcp.help get for explicit unavailable pages for legacy async actions.",
       "const": "mcp.tool.graph"
     },
     "actions": {
