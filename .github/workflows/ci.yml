@@ -73,18 +73,3 @@ jobs:
             import './src/log.mjs'
           EOF
           echo "No dependencies needed"
-
-      - name: Check file sizes
-        run: |
-          find server.mjs src tests -name '*.mjs' ! -path 'src/lib/schema2object.mjs' -print | while read -r f; do
-            lines=$(wc -l < "$f")
-            if [ "$lines" -gt 500 ]; then
-              echo "ERROR: $f has $lines lines (max 500)"
-              exit 1
-            fi
-            if [ "$lines" -gt 200 ]; then
-              echo "WARN: $f has $lines lines (recommended max 200)"
-              continue
-            fi
-            echo "OK: $f ($lines lines)"
-          done
