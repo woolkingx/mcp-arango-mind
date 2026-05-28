@@ -34,7 +34,7 @@
       <h1>Schema Roots</h1>
       <section id="principle">
         <h2>Principle</h2>
-        <p>The project has three root schema families. Each family owns only its own data shape. Runtime code may project these schemas, but must not move ownership into handlers.</p>
+        <p>The project has API/tool schema families plus runtime collection schemas. Each family owns only its own data shape. Runtime code may project these schemas, but must not move ownership into handlers.</p>
       </section>
 
       <section id="root-map">
@@ -45,8 +45,27 @@
             <tr><td><code>mcp/</code></td><td>MCP protocol API shapes, tool descriptors, requests, responses, content envelopes.</td><td><a href="../../mcp/schema/mcp.schema.json">mcp/schema/mcp.schema.json</a></td><td><a href="../../reference/mcp/2025-11-25.schema.json">reference/mcp/2025-11-25.schema.json</a></td></tr>
             <tr><td><code>arango/</code></td><td>Raw ArangoDB HTTP API operation shapes and operation ids.</td><td><a href="../../arango/schema/arango.openapi.schema.json">arango/schema/arango.openapi.schema.json</a></td><td><a href="../../reference/arango/community.openapi.json">reference/arango/community.openapi.json</a></td></tr>
             <tr><td><code>tools/</code></td><td>Local MCP tool owners, custom payloads, transitions, effect metadata, and activation reachability.</td><td><a href="../../tools/schema/tools.schema.json">tools/schema/tools.schema.json</a></td><td>local owner schemas</td></tr>
+            <tr><td><code>config/schemas/</code></td><td>Runtime collection schemas: project-owned document shape, field rules, <code>x-*</code> extensions, and runtime validation semantics keyed by collection name.</td><td><code>config/schemas/*.json</code></td><td><code>async/config/schemas/*.json</code> migration evidence</td></tr>
           </tbody>
         </table>
+      </section>
+
+      <section id="runtime-collection-schema">
+        <h2>Runtime Collection Schema</h2>
+        <p>A project collection schema is a runtime schema contract. It is read by the schema registry / schema-tree runtime to validate documents, expose field rules, and project coordinates such as <code>notes.type</code>.</p>
+        <p>The active runtime schema set must be loaded from every valid <code>config/schemas/*.json</code> file whose payload names a <code>collection</code> and an inner <code>schema</code>. The runtime schema file payload is itself validated through the schema2object gate; invalid runtime schema files fail load instead of being silently ignored. The current async source set is <code>access_logs</code>, <code>edges</code>, <code>notes</code>, <code>tag_edges</code>, <code>tags</code>, and <code>todos</code>; master must not silently narrow that set to <code>notes</code>.</p>
+        <p>It is not an ArangoDB collection-schema registration template. ArangoDB schema payloads may still be executed through raw OpenAPI operations, but they do not own this project's runtime schema truth.</p>
+        <pre><code>runtime collection schema
+  -&gt; document shape
+  -&gt; field constraints
+  -&gt; x-first-level / x-methods / x-tests / x-docs
+  -&gt; schema registry keyed by collection
+  -&gt; collection owner write gate and atlas projection
+
+Arango OpenAPI schema payload
+  -&gt; database operation argument
+  -&gt; storage-side validation option
+  -&gt; not the project runtime schema owner</code></pre>
       </section>
 
       <section id="owner-rule">
@@ -56,8 +75,10 @@
 arango schema root
   -&gt; raw API shape only
 tools schema root
-  -&gt; local tool owner truth</code></pre>
-        <p>When a field is not part of the official MCP API or the ArangoDB OpenAPI, it belongs to a reachable tool owner schema or another named data owner.</p>
+  -&gt; local tool owner truth
+runtime collection schema root
+  -&gt; project document/runtime validation truth</code></pre>
+        <p>When a field is not part of the official MCP API or the ArangoDB OpenAPI, it belongs to a reachable tool owner schema or another named data owner. Runtime collection fields belong to their collection schema and are applied through the runtime schema operator, not through operation-name-specific handler logic.</p>
       </section>
 
       <section id="gate-schema-root-01">

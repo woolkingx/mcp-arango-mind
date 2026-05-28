@@ -1,0 +1,105 @@
+{
+  "name": "access_logs",
+  "collection": "access_logs",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["target_ref", "access_type", "timestamp"],
+    "properties": {
+      "target_ref": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Document or job reference accessed, such as collection/key or admin_runs/<uuid>."
+      },
+      "target_type": {
+        "type": "string",
+        "enum": ["node", "edge", "job"],
+        "description": "Logical target category."
+      },
+      "access_type": {
+        "type": "integer",
+        "enum": [1, 2, 3, 4],
+        "description": "Access classification: 1=query, 2=update, 3=template, 4=admin."
+      },
+      "timestamp": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Access timestamp in ISO 8601 format."
+      },
+      "session_id": {
+        "type": "string",
+        "description": "Session identifier for the originating request."
+      },
+      "action": {
+        "type": "string",
+        "description": "Action name or verb for the access."
+      },
+      "query": {
+        "type": "string",
+        "description": "Query or template string executed."
+      },
+      "tags": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Tag labels attached to the access event."
+      },
+      "related_refs": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Related document references tied to this access."
+      },
+      "extra": {
+        "type": "object",
+        "description": "Additional metadata, such as admin run id, status, dry-run flag, metrics, or args."
+      }
+    },
+    "additionalProperties": true,
+    "x-methods": {
+      "is_query": {
+        "properties": {
+          "access_type": { "const": 1 }
+        }
+      },
+      "is_update": {
+        "properties": {
+          "access_type": { "const": 2 }
+        }
+      },
+      "is_template": {
+        "properties": {
+          "access_type": { "const": 3 }
+        }
+      },
+      "is_admin": {
+        "properties": {
+          "access_type": { "const": 4 }
+        }
+      },
+      "is_edge_access": {
+        "properties": {
+          "target_type": { "const": "edge" }
+        }
+      }
+    },
+    "x-tests": {
+      "is_query": ["access_query"],
+      "is_update": ["access_update"],
+      "is_template": ["access_template"],
+      "is_admin": ["access_admin"],
+      "is_edge_access": ["edge_target"]
+    },
+    "x-docs": {
+      "intent": "Access log entry tracking document reads, writes, template executions, and admin pipeline runs for behavior analysis.",
+      "category": "observability",
+      "notes": {
+        "access_weights": {
+          "query": 1.0,
+          "update": 2.0,
+          "template": 1.5,
+          "admin": 0.0
+        },
+        "edge_collections": ["edges", "tag_edges", "rules_edges", "skills_edges"]
+      }
+    }
+  }
+}

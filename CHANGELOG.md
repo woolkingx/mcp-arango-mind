@@ -1,5 +1,24 @@
 # Changelog
 
+## [0.3.0] - 2026-05-28
+
+### Added
+
+- `mcp.help` tool for schema-owned action help, including event-shaped examples and per-action payload schemas.
+- Direct category action surfaces for database, collection, view, graph, and admin tools.
+- `$defs.actions` and `$defs.payloads` tool schema structure for integrated action help without `x-*` metadata.
+
+### Changed
+
+- `tools/list` descriptions are now compressed action indexes shaped like real calls, for example `mcp.tool.collection(action=insert, payload={...})`.
+- Category tool schemas now expose concrete async-style actions such as `insert`, `find`, `aql_query`, and `create_index` instead of generic `call/target` category wrappers.
+- Runtime dispatch reads schema-owned action definitions and delegates to category owners for validation and execution.
+- Handbook and README now document `mcp.help`, direct category actions, and schema-owned help projection.
+
+### Removed
+
+- Removed `x-tools` / `x-tool` metadata from tool schemas in favor of first-class `$defs` schema nodes.
+
 ## [0.2.0] - 2026-05-24
 
 ### Added

@@ -1,7 +1,10 @@
+import { createRuntimeSchemaRegistry } from './runtime-schema.mjs'
+
 const DEFAULT_NODE_COLLECTION = 'notes'
 const DEFAULT_EDGE_COLLECTION = 'edges'
 const DEFAULT_DEPTH = 2
 const DEFAULT_LIMIT = 100
+const DEFAULT_EXAMPLES = 2
 
 const RELATION_CLASSES = {
   structural: ['has', 'is'],
@@ -27,6 +30,11 @@ const VIEWPOINTS = [
 function clamp(value, fallback, max = 500) {
   const n = Number.isInteger(value) ? value : fallback
   return Math.max(1, Math.min(max, n))
+}
+
+function clampZero(value, fallback, max = 500) {
+  const n = Number.isInteger(value) ? value : fallback
+  return Math.max(0, Math.min(max, n))
 }
 
 function profileRecord(profile) {
@@ -62,12 +70,62 @@ function nodeFieldsBindVar() {
 }
 
 function collectionNames(params) {
-  if (params.nodeCollection !== undefined || params.edgeCollection !== undefined) {
+  if (params.collection !== undefined || params.nodeCollection !== undefined || params.edgeCollection !== undefined) {
     throw new Error('atlas collection override is not allowed')
   }
   return {
     nodeCollection: DEFAULT_NODE_COLLECTION,
     edgeCollection: DEFAULT_EDGE_COLLECTION
+  }
+}
+
+function normalizeTypeMode(params) {
+  const mode = params.mode || 'table'
+  if (!['table', 'suggest', 'tree'].includes(mode)) {
+    throw new Error(`atlas.types unknown mode: ${mode}`)
+  }
+  return mode
+}
+
+function normalizeTypeRoot(params) {
+  if (params.root === undefined) return []
+  if (!Array.isArray(params.root) || !params.root.every(segment => typeof segment === 'string')) {
+    throw new Error('atlas.types root must be a type prefix array')
+  }
+  return params.root
+}
+
+function typeBaseBindVars(params, payload, runtimeRule) {
+  collectionNames(params)
+  return {
+    ...baseBindVars(params, payload),
+    '@nodeCollection': DEFAULT_NODE_COLLECTION,
+    firstLevel: runtimeRule.firstLevel
+  }
+}
+
+function typeTableBindVars(params, payload, runtimeRule) {
+  return {
+    ...typeBaseBindVars(params, payload, runtimeRule),
+    root: normalizeTypeRoot(params),
+    examples: clampZero(params.examples, DEFAULT_EXAMPLES, 5)
+  }
+}
+
+function typeSuggestBindVars(params, payload, runtimeRule) {
+  return {
+    ...typeBaseBindVars(params, payload, runtimeRule),
+    examples: clampZero(params.examples, DEFAULT_EXAMPLES, 5),
+    query: params.query || '',
+    tags: Array.isArray(params.tags) ? params.tags : []
+  }
+}
+
+function typeTreeBindVars(params, payload, runtimeRule) {
+  return {
+    ...typeBaseBindVars(params, payload, runtimeRule),
+    root: normalizeTypeRoot(params),
+    depth: clamp(params.depth, DEFAULT_DEPTH, 4)
   }
 }
 
@@ -136,14 +194,27 @@ function facetsQuery(params, payload) {
     query: `
 LET types = (
   FOR n IN @@nodeCollection
-    COLLECT value = n.type WITH COUNT INTO count
-    SORT count DESC, value
+    FILTER IS_ARRAY(n.type) AND LENGTH(n.type) > 0
+    LET validTypeSegments = (
+      FOR segment IN n.type
+        FILTER IS_STRING(segment)
+        RETURN segment
+    )
+    FILTER LENGTH(n.type) == LENGTH(validTypeSegments)
+    LET rootValue = validTypeSegments[0]
+    LET objectValue = LENGTH(validTypeSegments) > 1 ? validTypeSegments[1] : "-"
+    LET aspectValue = LENGTH(validTypeSegments) > 2 ? validTypeSegments[2] : "-"
+    LET subaspectValue = LENGTH(validTypeSegments) > 3 ? validTypeSegments[3] : "-"
+    LET typePathValue = CONCAT_SEPARATOR("/", validTypeSegments)
+    COLLECT root = rootValue, object = objectValue, aspect = aspectValue, subaspect = subaspectValue, typePath = typePathValue WITH COUNT INTO count
+    SORT count DESC, typePath
     LIMIT @limit
-    RETURN { value, count }
+    RETURN { root, object, aspect, subaspect, type_path: typePath, count }
 )
 LET tags = (
   FOR n IN @@nodeCollection
     FOR tag IN (IS_ARRAY(n.tags) ? n.tags : [])
+      FILTER IS_STRING(tag)
       COLLECT value = tag WITH COUNT INTO count
       SORT count DESC, value
       LIMIT @limit
@@ -151,6 +222,7 @@ LET tags = (
 )
 LET relations = (
   FOR e IN @@edgeCollection
+    FILTER e.rel == null OR IS_STRING(e.rel)
     COLLECT value = e.rel WITH COUNT INTO count
     SORT count DESC, value
     LIMIT @limit
@@ -159,6 +231,99 @@ LET relations = (
 RETURN { types, tags, relations, relationClasses: @relationClasses }`,
     bindVars: { ...baseBindVars(params, payload), '@nodeCollection': nodeCollection, '@edgeCollection': edgeCollection, relationClasses: RELATION_CLASSES }
   }
+}
+
+function typesTableQuery(params, payload, runtimeRule) {
+  return {
+    query: `
+LET rootPrefix = IS_ARRAY(@root) ? @root : []
+FOR n IN @@nodeCollection
+  FILTER IS_ARRAY(n.type) AND LENGTH(n.type) > 0
+  FILTER n.type[0] IN @firstLevel
+  FILTER LENGTH(rootPrefix) == 0 OR SLICE(n.type, 0, LENGTH(rootPrefix)) == rootPrefix
+  LET rootValue = n.type[0]
+  LET objectValue = LENGTH(n.type) > 1 ? n.type[1] : "-"
+  LET aspectValue = LENGTH(n.type) > 2 ? n.type[2] : "-"
+  LET subaspectValue = LENGTH(n.type) > 3 ? n.type[3] : "-"
+  COLLECT root = rootValue, object = objectValue, aspect = aspectValue, subaspect = subaspectValue INTO group
+  LET examples = (
+    FOR g IN group
+      SORT g.n.weight DESC, g.n.created_at DESC, g.n.title
+      LIMIT @examples
+      RETURN g.n.title
+  )
+  SORT LENGTH(group) DESC, root, object, aspect, subaspect
+  LIMIT @limit
+  RETURN { root, object, aspect, subaspect, count: LENGTH(group), examples }`,
+    bindVars: typeTableBindVars(params, payload, runtimeRule)
+  }
+}
+
+function typesSuggestQuery(params, payload, runtimeRule) {
+  return {
+    query: `
+LET q = LOWER(TRIM(@query || ""))
+LET tagHints = IS_ARRAY(@tags) ? @tags : []
+FOR n IN @@nodeCollection
+  FILTER IS_ARRAY(n.type) AND LENGTH(n.type) > 0
+  FILTER n.type[0] IN @firstLevel
+  LET typePath = CONCAT_SEPARATOR("/", n.type)
+  LET title = LOWER(n.title || "")
+  LET content = LOWER(n.content || "")
+  LET tags = IS_ARRAY(n.tags) ? n.tags : []
+  LET queryHit = q == "" ? 0 : ((CONTAINS(title, q) ? 4 : 0) + (CONTAINS(content, q) ? 1 : 0) + (CONTAINS(LOWER(typePath), q) ? 3 : 0))
+  LET tagHits = LENGTH(INTERSECTION(tags, tagHints))
+  LET typeHits = LENGTH(INTERSECTION(n.type, tagHints))
+  LET score = queryHit + tagHits * 3 + typeHits * 2 + MIN([TO_NUMBER(n.weight || 0) / 25, 4])
+  FILTER score > 0
+  COLLECT typeValue = n.type, typePathValue = typePath INTO group
+  LET score = MAX(group[*].score)
+  LET examples = (
+    FOR g IN group
+      SORT g.n.weight DESC, g.n.created_at DESC, g.n.title
+      LIMIT @examples
+      RETURN g.n.title
+  )
+  SORT score DESC, LENGTH(group) DESC, typePathValue
+  LIMIT @limit
+  RETURN { type: typeValue, type_path: typePathValue, score, confidence: score >= 8 ? "high" : (score >= 4 ? "medium" : "low"), count: LENGTH(group), examples }`,
+    bindVars: typeSuggestBindVars(params, payload, runtimeRule)
+  }
+}
+
+function typesTreeQuery(params, payload, runtimeRule) {
+  return {
+    query: `
+LET rootPrefix = IS_ARRAY(@root) ? @root : []
+LET branches = (
+  FOR n IN @@nodeCollection
+    FILTER IS_ARRAY(n.type) AND LENGTH(n.type) > 0
+    FILTER n.type[0] IN @firstLevel
+    FILTER LENGTH(rootPrefix) == 0 OR SLICE(n.type, 0, LENGTH(rootPrefix)) == rootPrefix
+    LET visiblePath = SLICE(n.type, 0, LENGTH(rootPrefix) + @depth)
+    LET maxIndex = LENGTH(visiblePath) - 1
+    FILTER maxIndex >= LENGTH(rootPrefix)
+    FOR i IN LENGTH(rootPrefix)..maxIndex
+      LET path = SLICE(visiblePath, 0, i + 1)
+      COLLECT typeValue = path INTO group
+      SORT LENGTH(typeValue), typeValue
+      LIMIT @limit
+      RETURN { type: typeValue, segment: typeValue[LENGTH(typeValue) - 1], depth: LENGTH(typeValue), count: LENGTH(group) }
+)
+RETURN { root: rootPrefix, depth: @depth, branches: SLICE(branches, 0, @limit) }`,
+    bindVars: typeTreeBindVars(params, payload, runtimeRule)
+  }
+}
+
+function typesQuery(params, payload, runtimeSchemas) {
+  const runtimeRule = runtimeSchemas.getTypeRule(DEFAULT_NODE_COLLECTION)
+  const mode = normalizeTypeMode(params)
+  const built = mode === 'suggest'
+    ? typesSuggestQuery(params, payload, runtimeRule)
+    : mode === 'tree'
+      ? typesTreeQuery(params, payload, runtimeRule)
+      : typesTableQuery(params, payload, runtimeRule)
+  return { ...built, mode, runtimeRule }
 }
 
 function viewpointsQuery(params, payload) {
@@ -204,11 +369,12 @@ const PROFILES = new Map([
   ['atlas.index', { id: 'atlas.index', title: 'Atlas Index', description: 'Rooted structural tree plus source/history links.', params: { root: 'required', depth: '1..4', limit: '1..500' }, build: indexQuery }],
   ['atlas.focus', { id: 'atlas.focus', title: 'Atlas Focus', description: 'Incoming and outgoing relation distribution around one node.', params: { root: 'required' }, build: focusQuery }],
   ['atlas.facets', { id: 'atlas.facets', title: 'Atlas Facets', description: 'Type, tag, and relation distributions for navigation.', params: { limit: '1..500' }, build: facetsQuery }],
+  ['atlas.types', { id: 'atlas.types', title: 'Atlas Types', description: 'Runtime schema-backed type-coordinate table, suggestions, and tree browsing.', params: { mode: 'table|suggest|tree', root: 'optional type prefix array', query: 'optional string', tags: 'optional string array', depth: '1..4 for tree', examples: '0..5', limit: '1..500' }, build: typesQuery }],
   ['atlas.viewpoints', { id: 'atlas.viewpoints', title: 'Atlas Viewpoints', description: 'Coverage report for system-thinking viewpoints.', params: { viewpoints: 'optional string array', limit: '1..500' }, build: viewpointsQuery }],
   ['atlas.audit', { id: 'atlas.audit', title: 'Atlas Audit', description: 'Graph/view/index readiness hints plus relation distribution.', params: { limit: '1..500' }, build: auditQuery }]
 ])
 
-export function createAtlasOwnerHandlers(arangoApi) {
+export function createAtlasOwnerHandlers(arangoApi, { runtimeSchemas = createRuntimeSchemaRegistry() } = {}) {
   function list(payload) {
     const limit = payload.limit ?? DEFAULT_LIMIT
     const profiles = [...PROFILES.values()].slice(0, limit).map(profileRecord)
@@ -229,7 +395,7 @@ export function createAtlasOwnerHandlers(arangoApi) {
   async function call(payload) {
     const profile = PROFILES.get(payload.target)
     if (!profile) throw new Error(`unknown atlas profile: ${payload.target}`)
-    const { query, bindVars } = profile.build(payload.params || {}, payload)
+    const { query, bindVars, mode, runtimeRule } = profile.build(payload.params || {}, payload, runtimeSchemas)
     const response = await arangoApi.callOperation('createAqlQueryCursor', { query, bindVars })
     if (response?.error) {
       const code = response.errorNum || response.code || 'unknown'
@@ -237,13 +403,25 @@ export function createAtlasOwnerHandlers(arangoApi) {
       throw new Error(`atlas AQL failed (${code}): ${message}`)
     }
     const results = Array.isArray(response?.result) ? response.result : []
-    return { profile: profile.id, count: results.length, results }
+    const envelope = { profile: profile.id, count: results.length, results }
+    if (mode) envelope.mode = mode
+    if (runtimeRule) envelope.runtimeRule = runtimeRule
+    return envelope
+  }
+
+  function dispatch(payload, action) {
+    if (action === 'list') return list(payload)
+    if (action === 'search') return search(payload)
+    if (action === 'describe') return describe(payload)
+    if (action === 'call') return call(payload)
+    throw new Error(`unknown atlas action: ${action}`)
   }
 
   return {
     'atlasOwner.list': list,
     'atlasOwner.search': search,
     'atlasOwner.describe': describe,
-    'atlasOwner.call': call
+    'atlasOwner.call': call,
+    'atlasOwner.dispatch': dispatch
   }
 }

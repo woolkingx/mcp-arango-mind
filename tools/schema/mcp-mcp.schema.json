@@ -2,62 +2,175 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-mcp.schema.json",
   "title": "MCP MCP",
-  "description": "MCP reference metadata: live tool catalog, category map, and surface roots. Read-only; no ArangoDB I/O.",
+  "description": "Tool discovery and metadata. search_tools: get action params for any mcp.* tool. Also: list_by_category(tools by category) unload(unload tools)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe"]
+      "enum": [
+        "search_tools",
+        "list_by_category",
+        "unload"
+      ],
+      "description": "MCP metadata action to perform."
     },
     "payload": {
       "type": "object",
-      "additionalProperties": false,
-      "properties": {
-        "target": {
-          "type": "string",
-          "description": "Meta key (tools|categories|surfaces) for list, or a specific tool/category/surface name for describe."
-        },
-        "keywords": {
-          "type": "array",
-          "items": { "type": "string" },
-          "minItems": 1,
-          "description": "Search keywords for search."
-        },
-        "scope": {
-          "type": "string",
-          "enum": ["tools"],
-          "default": "tools",
-          "description": "Search scope; only 'tools' is implemented today."
-        },
-        "limit": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 500,
-          "default": 100
-        },
-        "format": {
-          "type": "string",
-          "enum": ["json", "md"],
-          "default": "md"
-        }
-      }
+      "additionalProperties": true,
+      "description": "Action payload. Use search_tools for action-specific params."
+    },
+    "format": {
+      "type": "string",
+      "enum": [
+        "json",
+        "md"
+      ],
+      "default": "md",
+      "description": "Output format."
     }
   },
-  "allOf": [
-    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
-    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
-  ],
-  "x-tool": {
-    "name": "mcp.mcp",
-    "title": "MCP Reference",
-    "description": "MCP reference metadata: live tool catalog, category map, and surface roots.",
-    "target": "mcp.mcp",
+  "$defs": {
+    "tool": {
+      "title": "MCP Reference",
+      "description": "Tool discovery and metadata. search_tools: get action params for any mcp.* tool. Also: list_by_category(tools by category) unload(unload tools)",
+      "const": "mcp.mcp"
+    },
     "actions": {
-      "list":     { "handler": "mcpMeta.list",     "effect": "read", "idempotent": true, "openWorld": false, "evidence": "Tools, categories, or surfaces listing." },
-      "search":   { "handler": "mcpMeta.search",   "effect": "read", "idempotent": true, "openWorld": false, "evidence": "Filtered tool catalog matches." },
-      "describe": { "handler": "mcpMeta.describe", "effect": "read", "idempotent": true, "openWorld": false, "evidence": "Tool, category, or surface description." }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "search_tools": {
+          "title": "search_tools",
+          "description": "Filtered tool/action catalog matches.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.mcp",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "search_tools",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/search_tools"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.mcp",
+              "action": "search_tools",
+              "payload": {
+                "keywords": [
+                  "collection"
+                ],
+                "limit": 5
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "list_by_category": {
+          "title": "list_by_category",
+          "description": "Tool categories listing.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.mcp",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list_by_category",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list_by_category"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.mcp",
+              "action": "list_by_category",
+              "payload": {
+                "limit": 20
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "unload": {
+          "title": "unload",
+          "description": "Unload request result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.mcp",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "unload",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/unload"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.mcp",
+              "action": "unload",
+              "payload": {
+                "tool_names": []
+              }
+            }
+          ]
+        }
+      }
+    },
+    "payloads": {
+      "search_tools": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "keywords"
+        ],
+        "properties": {},
+        "description": "Payload for mcp.mcp.search_tools."
+      },
+      "list_by_category": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {},
+        "description": "Payload for mcp.mcp.list_by_category."
+      },
+      "unload": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {},
+        "description": "Payload for mcp.mcp.unload."
+      }
     }
   }
 }

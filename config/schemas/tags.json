@@ -1,0 +1,81 @@
+{
+  "name": "tags",
+  "collection": "tags",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["label"],
+    "properties": {
+      "label": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Normalized tag label, lowercase and without a # prefix."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 0,
+        "default": 0,
+        "description": "Number of notes containing this tag."
+      },
+      "aliases": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Alternative forms of this tag."
+      },
+      "embedding": {
+        "type": "array",
+        "items": { "type": "number" },
+        "description": "Vector embedding, 1024 dimensions for Qwen3-Embedding-0.6B."
+      },
+      "embedding_model": {
+        "type": "string",
+        "description": "Model used to generate embedding."
+      },
+      "embedding_text": {
+        "type": "string",
+        "description": "Text that was embedded."
+      },
+      "embedded_at": {
+        "type": "string",
+        "description": "Timestamp when embedding was generated."
+      },
+      "source": {
+        "type": "string",
+        "description": "Origin of this tag, such as auto-sync or manual."
+      },
+      "updated_at": {
+        "type": "string",
+        "description": "Last update timestamp in ISO 8601 format."
+      }
+    },
+    "additionalProperties": true,
+    "x-methods": {
+      "is_normalized": {
+        "properties": {
+          "label": { "pattern": "^[^#A-Z]", "minLength": 1 }
+        }
+      },
+      "has_embedding": {
+        "required": ["embedding", "embedding_model"],
+        "properties": {
+          "embedding": { "minItems": 1 }
+        }
+      },
+      "is_frequent": {
+        "properties": {
+          "count": { "minimum": 4 }
+        }
+      }
+    },
+    "x-tests": {
+      "is_normalized": ["valid_normal", "invalid_format", "empty"],
+      "has_embedding": ["valid_normal", "missing"],
+      "is_frequent": ["min_boundary", "below_min", "valid_normal"]
+    },
+    "x-docs": {
+      "intent": "Tag vertex in the knowledge graph. Represents a concept that connects notes.",
+      "category": "graph",
+      "notes": "sync_run creates or updates these from notes.tags. embedding_run generates vector embeddings. count is maintained by sync_run."
+    }
+  }
+}

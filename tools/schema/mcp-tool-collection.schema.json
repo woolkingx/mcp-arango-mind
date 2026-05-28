@@ -2,42 +2,4212 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-collection.schema.json",
   "title": "MCP Tool Collection",
-  "description": "ArangoDB collection, document, and index category scoped to Collections, Documents, and Indexes tags.",
+  "description": "search_tools first for params. Collection: insert(insert document) find(find by key or filter) update(update by key) remove(remove by key) insert_with_validation(insert with ref validation) list(list collections) bulk_insert(batch insert) bulk_update(batch update) import(import from file) export(export to file) create(create collection) stats(collection statistics) drop(drop collection) truncate(remove all docs) backup(backup data) node_tree(render type-field hierarchy as tree) | Index: list_indexes create_index delete_index | Schema: get_schema create_schema validate_document validate_references",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe", "call"]
+      "enum": [
+        "insert",
+        "find",
+        "update",
+        "remove",
+        "insert_with_validation",
+        "list",
+        "bulk_insert",
+        "bulk_update",
+        "import",
+        "export",
+        "list_indexes",
+        "create_index",
+        "delete_index",
+        "get_schema",
+        "create_schema",
+        "validate_document",
+        "validate_references",
+        "create",
+        "stats",
+        "drop",
+        "truncate",
+        "backup",
+        "node_tree"
+      ],
+      "description": "Collection operation to perform."
     },
     "payload": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
+      "description": "Collection action payload. Required fields depend on action and are enforced by the collection owner.",
       "properties": {
-        "target": { "type": "string", "description": "OpenAPI operationId within Collections, Documents, or Indexes tags." },
-        "params": { "type": "object" },
-        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
-        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+        "collection": {
+          "type": "string",
+          "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+        },
+        "name": {
+          "type": "string",
+          "description": "Collection or schema name for create/create_schema actions."
+        },
+        "key": {
+          "type": "string",
+          "description": "Document key for find/update/remove/export actions."
+        },
+        "document": {
+          "type": "object",
+          "description": "Single document for insert, insert_with_validation, or validate_document."
+        },
+        "data": {
+          "type": "object",
+          "description": "Legacy alias for document."
+        },
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Documents for bulk_insert."
+        },
+        "update": {
+          "type": "object",
+          "description": "Patch body for update."
+        },
+        "updates": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Patch bodies for bulk_update. Each item should include key."
+        },
+        "filter": {
+          "type": "object",
+          "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 5000,
+          "default": 100,
+          "description": "Maximum result count."
+        },
+        "type": {
+          "type": "string",
+          "description": "Collection type (document|edge) or index type depending on action."
+        },
+        "fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Index fields."
+        },
+        "unique": {
+          "type": "boolean",
+          "description": "Whether an index is unique."
+        },
+        "id_or_name": {
+          "type": "string",
+          "description": "Index id or name for delete_index."
+        },
+        "schema": {
+          "type": "object",
+          "description": "JSON Schema for create_schema or inline validation."
+        },
+        "schema_name": {
+          "type": "string",
+          "description": "Runtime schema name."
+        },
+        "reference_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Reference field names for validation."
+        },
+        "fix_invalid": {
+          "type": "boolean",
+          "description": "Whether validate_references should try to fix invalid references."
+        },
+        "file_path": {
+          "type": "string",
+          "description": "Input path for import."
+        },
+        "options": {
+          "type": "object",
+          "description": "Action-specific options for import/export."
+        },
+        "output_dir": {
+          "type": "string",
+          "description": "Backup/export output directory."
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Collection list for backup."
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1000,
+          "description": "Batch size for bulk actions."
+        },
+        "on_error": {
+          "type": "string",
+          "enum": [
+            "stop",
+            "continue",
+            "ignore"
+          ],
+          "description": "Bulk action error policy."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "md"
+          ],
+          "default": "md",
+          "description": "Output format."
+        }
       }
     }
   },
-  "allOf": [
-    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
-    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
-    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
-  ],
-  "x-tool": {
-    "name": "mcp.tool.collection",
-    "title": "MCP Tool Collection",
-    "description": "ArangoDB collection, document, and index category scoped to Collections, Documents, and Indexes tags.",
-    "target": "mcp.tool.collection",
+  "$defs": {
+    "tool": {
+      "title": "MCP Tool Collection",
+      "description": "search_tools first for params. Collection: insert(insert document) find(find by key or filter) update(update by key) remove(remove by key) insert_with_validation(insert with ref validation) list(list collections) bulk_insert(batch insert) bulk_update(update docs) import(import from file) export(export data) create(create collection) stats(collection statistics) drop(drop collection) truncate(remove all docs) backup(backup data) node_tree(render type-field hierarchy as tree) | Index: list_indexes create_index delete_index | Schema: get_schema create_schema validate_document validate_references",
+      "const": "mcp.tool.collection"
+    },
     "actions": {
-      "list":     { "handler": "categoryCollection.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Collection-tag operation listing" },
-      "search":   { "handler": "categoryCollection.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Collection-tag operation matches" },
-      "describe": { "handler": "categoryCollection.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Collection-tag operation contract" },
-      "call":     { "handler": "categoryCollection.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB Collection operation response" }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "insert": {
+          "title": "insert",
+          "description": "Inserted document.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "insert",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/insert"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "insert",
+              "payload": {
+                "collection": "notes",
+                "document": {}
+              }
+            }
+          ]
+        },
+        "find": {
+          "title": "find",
+          "description": "Document or query results.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "find",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/find"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "find",
+              "payload": {
+                "collection": "notes",
+                "key": "note-key"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "update": {
+          "title": "update",
+          "description": "Updated document metadata.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "update",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/update"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "update",
+              "payload": {
+                "collection": "notes",
+                "key": "note-key",
+                "update": {}
+              }
+            }
+          ]
+        },
+        "remove": {
+          "title": "remove",
+          "description": "Removed document metadata.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "remove",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/remove"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "remove",
+              "payload": {
+                "collection": "notes",
+                "key": "note-key"
+              }
+            }
+          ]
+        },
+        "insert_with_validation": {
+          "title": "insert_with_validation",
+          "description": "Validated insert result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "insert_with_validation",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/insert_with_validation"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "insert_with_validation",
+              "payload": {
+                "collection": "notes",
+                "document": {}
+              }
+            }
+          ]
+        },
+        "list": {
+          "title": "list",
+          "description": "Collection listing.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "list",
+              "payload": {
+                "limit": 20
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "bulk_insert": {
+          "title": "bulk_insert",
+          "description": "Bulk insert result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "bulk_insert",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/bulk_insert"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "bulk_insert",
+              "payload": {
+                "collection": "notes",
+                "documents": [
+                  {}
+                ]
+              }
+            }
+          ]
+        },
+        "bulk_update": {
+          "title": "bulk_update",
+          "description": "Bulk update result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "bulk_update",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/bulk_update"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "bulk_update",
+              "payload": {
+                "collection": "notes",
+                "updates": [
+                  {
+                    "key": "note-key"
+                  }
+                ]
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.collection.bulk_update is not migrated in master yet."
+        },
+        "import": {
+          "title": "import",
+          "description": "Import result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "import",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/import"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "import",
+              "payload": {
+                "collection": "notes",
+                "file_path": "notes.jsonl"
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.collection.import is not migrated in master yet."
+        },
+        "export": {
+          "title": "export",
+          "description": "Export result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "export",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/export"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "export",
+              "payload": {
+                "collection": "notes",
+                "output_dir": ".backup/arango"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.collection.export is not migrated in master yet."
+        },
+        "list_indexes": {
+          "title": "list_indexes",
+          "description": "Index listing.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list_indexes",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list_indexes"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "list_indexes",
+              "payload": {
+                "collection": "notes"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "create_index": {
+          "title": "create_index",
+          "description": "Created index.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "create_index",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/create_index"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "create_index",
+              "payload": {
+                "collection": "notes",
+                "type": "persistent",
+                "fields": [
+                  "title"
+                ]
+              }
+            }
+          ]
+        },
+        "delete_index": {
+          "title": "delete_index",
+          "description": "Deleted index.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "delete_index",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/delete_index"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "delete_index",
+              "payload": {
+                "id_or_name": "notes/title"
+              }
+            }
+          ]
+        },
+        "get_schema": {
+          "title": "get_schema",
+          "description": "Runtime schema.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "get_schema",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/get_schema"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "get_schema",
+              "payload": {
+                "schema_name": "notes"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "create_schema": {
+          "title": "create_schema",
+          "description": "Created runtime schema.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "create_schema",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/create_schema"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "create_schema",
+              "payload": {
+                "schema_name": "notes",
+                "schema": {}
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.collection.create_schema is not migrated in master yet."
+        },
+        "validate_document": {
+          "title": "validate_document",
+          "description": "Validation result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "validate_document",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/validate_document"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "validate_document",
+              "payload": {
+                "collection": "notes",
+                "document": {}
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "validate_references": {
+          "title": "validate_references",
+          "description": "Reference validation result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "validate_references",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/validate_references"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "validate_references",
+              "payload": {
+                "collection": "notes",
+                "reference_fields": [
+                  "_from",
+                  "_to"
+                ]
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.collection.validate_references is not migrated in master yet."
+        },
+        "create": {
+          "title": "create",
+          "description": "Created collection.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "create",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/create"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "create",
+              "payload": {
+                "name": "notes",
+                "type": "document"
+              }
+            }
+          ]
+        },
+        "stats": {
+          "title": "stats",
+          "description": "Collection statistics.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "stats",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/stats"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "stats",
+              "payload": {
+                "collection": "notes"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "drop": {
+          "title": "drop",
+          "description": "Dropped collection.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "drop",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/drop"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "drop",
+              "payload": {
+                "collection": "notes"
+              }
+            }
+          ]
+        },
+        "truncate": {
+          "title": "truncate",
+          "description": "Truncated collection.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "truncate",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/truncate"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "truncate",
+              "payload": {
+                "collection": "notes"
+              }
+            }
+          ]
+        },
+        "backup": {
+          "title": "backup",
+          "description": "Backup result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "backup",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/backup"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "backup",
+              "payload": {
+                "collections": [
+                  "notes"
+                ],
+                "output_dir": ".backup/arango"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.collection.backup is not migrated in master yet."
+        },
+        "node_tree": {
+          "title": "node_tree",
+          "description": "Type-field hierarchy.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.collection",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "node_tree",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/node_tree"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.collection",
+              "action": "node_tree",
+              "payload": {
+                "collection": "notes"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.collection.node_tree is not migrated in master yet."
+        }
+      }
+    },
+    "payloads": {
+      "insert": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "document"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.insert."
+      },
+      "find": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.find."
+      },
+      "update": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "key",
+          "update"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.update."
+      },
+      "remove": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "key"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.remove."
+      },
+      "insert_with_validation": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "document"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.insert_with_validation."
+      },
+      "list": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.list."
+      },
+      "bulk_insert": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "documents"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.bulk_insert."
+      },
+      "bulk_update": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "updates"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.bulk_update."
+      },
+      "import": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "file_path"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.import."
+      },
+      "export": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.export."
+      },
+      "list_indexes": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.list_indexes."
+      },
+      "create_index": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "type",
+          "fields"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.create_index."
+      },
+      "delete_index": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id_or_name"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.delete_index."
+      },
+      "get_schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "schema_name"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.get_schema."
+      },
+      "create_schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "schema_name",
+          "schema"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.create_schema."
+      },
+      "validate_document": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection",
+          "document"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.validate_document."
+      },
+      "validate_references": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.validate_references."
+      },
+      "create": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.create."
+      },
+      "stats": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.stats."
+      },
+      "drop": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.drop."
+      },
+      "truncate": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.truncate."
+      },
+      "backup": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.backup."
+      },
+      "node_tree": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "collection": {
+            "type": "string",
+            "description": "Collection name for document, index, schema, stats, backup, or node_tree actions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Collection or schema name for create/create_schema actions."
+          },
+          "key": {
+            "type": "string",
+            "description": "Document key for find/update/remove/export actions."
+          },
+          "document": {
+            "type": "object",
+            "description": "Single document for insert, insert_with_validation, or validate_document."
+          },
+          "data": {
+            "type": "object",
+            "description": "Legacy alias for document."
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Documents for bulk_insert."
+          },
+          "update": {
+            "type": "object",
+            "description": "Patch body for update."
+          },
+          "updates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Patch bodies for bulk_update. Each item should include key."
+          },
+          "filter": {
+            "type": "object",
+            "description": "Find/export filter object. MongoDB-style operators such as $gt, $gte, $lt, $lte, $ne, and $in are accepted by migrated handlers."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5000,
+            "default": 100,
+            "description": "Maximum result count."
+          },
+          "type": {
+            "type": "string",
+            "description": "Collection type (document|edge) or index type depending on action."
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Index fields."
+          },
+          "unique": {
+            "type": "boolean",
+            "description": "Whether an index is unique."
+          },
+          "id_or_name": {
+            "type": "string",
+            "description": "Index id or name for delete_index."
+          },
+          "schema": {
+            "type": "object",
+            "description": "JSON Schema for create_schema or inline validation."
+          },
+          "schema_name": {
+            "type": "string",
+            "description": "Runtime schema name."
+          },
+          "reference_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Reference field names for validation."
+          },
+          "fix_invalid": {
+            "type": "boolean",
+            "description": "Whether validate_references should try to fix invalid references."
+          },
+          "file_path": {
+            "type": "string",
+            "description": "Input path for import."
+          },
+          "options": {
+            "type": "object",
+            "description": "Action-specific options for import/export."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup/export output directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collection list for backup."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1000,
+            "description": "Batch size for bulk actions."
+          },
+          "on_error": {
+            "type": "string",
+            "enum": [
+              "stop",
+              "continue",
+              "ignore"
+            ],
+            "description": "Bulk action error policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.collection.node_tree."
+      }
     }
   }
 }

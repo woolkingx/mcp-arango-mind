@@ -2,42 +2,1732 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-admin.schema.json",
   "title": "MCP Tool Admin",
-  "description": "ArangoDB admin category scoped to Administration, Queries, Monitoring, and Tasks tags.",
+  "description": "search_tools first for params. Admin: aql_query(execute raw AQL) aql_explain(explain query plan) aql_profile(profile query stats) aql_build(build AQL from structured params) template_execute(execute named template) sync_run(sync tags from notes) optimize_run(optimize edge weights) quality_check(graph quality metrics) embedding_run(tag embedding ops) ppr_run(Personalized PageRank)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe", "call"]
+      "enum": [
+        "aql_query",
+        "aql_explain",
+        "aql_profile",
+        "aql_build",
+        "template_execute",
+        "sync_run",
+        "optimize_run",
+        "quality_check",
+        "embedding_run",
+        "ppr_run"
+      ],
+      "description": "Admin operation to perform."
     },
     "payload": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
+      "description": "Admin action payload. Required fields depend on action and are enforced by the admin owner.",
       "properties": {
-        "target": { "type": "string", "description": "OpenAPI operationId within Administration, Queries, Monitoring, or Tasks tags." },
-        "params": { "type": "object" },
-        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
-        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+        "query": {
+          "type": "string",
+          "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+        },
+        "bind_vars": {
+          "type": "object",
+          "description": "AQL bind variables."
+        },
+        "bindVars": {
+          "type": "object",
+          "description": "AQL bind variables alias."
+        },
+        "collection": {
+          "type": "string",
+          "description": "Collection for aql_build."
+        },
+        "filters": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Structured filters for aql_build."
+        },
+        "sort": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Structured sort for aql_build."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Result or builder limit."
+        },
+        "return_fields": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Fields for aql_build RETURN projection."
+        },
+        "max_plans": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1,
+          "description": "Maximum query plans for explain/profile."
+        },
+        "suggest_indexes": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether explain should include index suggestions."
+        },
+        "name": {
+          "type": "string",
+          "description": "Template name for template_execute."
+        },
+        "params": {
+          "type": "object",
+          "description": "Template parameters or action-specific nested params."
+        },
+        "dry_run": {
+          "type": "boolean",
+          "description": "Preview admin optimization action without mutation."
+        },
+        "days": {
+          "type": "integer",
+          "description": "Lookback window for optimize_run."
+        },
+        "alpha": {
+          "type": "number",
+          "description": "Optimization or PPR alpha."
+        },
+        "top_k": {
+          "type": "integer",
+          "description": "Number of top rows."
+        },
+        "orphan_limit": {
+          "type": "integer",
+          "description": "Quality check orphan limit."
+        },
+        "embedding_action": {
+          "type": "string",
+          "enum": [
+            "generate",
+            "search",
+            "status"
+          ],
+          "description": "Embedding action."
+        },
+        "batch_size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Embedding batch size."
+        },
+        "max_iter": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "PPR max iterations."
+        },
+        "min_score": {
+          "type": "number",
+          "description": "PPR minimum score."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "md"
+          ],
+          "default": "md",
+          "description": "Output format."
+        }
       }
     }
   },
-  "allOf": [
-    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
-    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
-    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
-  ],
-  "x-tool": {
-    "name": "mcp.tool.admin",
-    "title": "MCP Tool Admin",
-    "description": "ArangoDB admin category scoped to Administration, Queries, Monitoring, and Tasks tags.",
-    "target": "mcp.tool.admin",
+  "$defs": {
+    "tool": {
+      "title": "MCP Tool Admin",
+      "description": "search_tools first for params. Admin: aql_query(execute raw AQL) aql_explain(explain query plan) aql_profile(profile query stats) aql_build(build AQL from structured params) template_execute(execute named template) sync_run(sync tags from notes) optimize_run(optimize edge weights) quality_check(graph quality metrics) embedding_run(tag embedding ops) ppr_run(Personalized PageRank)",
+      "const": "mcp.tool.admin"
+    },
     "actions": {
-      "list":     { "handler": "categoryAdmin.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Admin-tag operation listing" },
-      "search":   { "handler": "categoryAdmin.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Admin-tag operation matches" },
-      "describe": { "handler": "categoryAdmin.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Admin-tag operation contract" },
-      "call":     { "handler": "categoryAdmin.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB Admin operation response" }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "aql_query": {
+          "title": "aql_query",
+          "description": "AQL query result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "aql_query",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/aql_query"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "aql_query",
+              "payload": {
+                "query": "RETURN 1"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "aql_explain": {
+          "title": "aql_explain",
+          "description": "AQL explain plan.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "aql_explain",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/aql_explain"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "aql_explain",
+              "payload": {
+                "query": "RETURN 1"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "aql_profile": {
+          "title": "aql_profile",
+          "description": "AQL profile result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "aql_profile",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/aql_profile"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "aql_profile",
+              "payload": {
+                "query": "RETURN 1"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "aql_build": {
+          "title": "aql_build",
+          "description": "Built AQL.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "aql_build",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/aql_build"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "aql_build",
+              "payload": {
+                "collection": "notes",
+                "filters": []
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.admin.aql_build is not migrated in master yet."
+        },
+        "template_execute": {
+          "title": "template_execute",
+          "description": "Template execution result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "template_execute",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/template_execute"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "template_execute",
+              "payload": {
+                "name": "memory.view",
+                "params": {
+                  "query": "schema"
+                }
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.admin.template_execute is not migrated in master yet."
+        },
+        "sync_run": {
+          "title": "sync_run",
+          "description": "Sync result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "sync_run",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/sync_run"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "sync_run",
+              "payload": {
+                "dry_run": true
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.admin.sync_run is not migrated in master yet."
+        },
+        "optimize_run": {
+          "title": "optimize_run",
+          "description": "Optimize result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "optimize_run",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/optimize_run"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "optimize_run",
+              "payload": {
+                "dry_run": true
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.admin.optimize_run is not migrated in master yet."
+        },
+        "quality_check": {
+          "title": "quality_check",
+          "description": "Quality metrics.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "quality_check",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/quality_check"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "quality_check",
+              "payload": {
+                "limit": 20
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.admin.quality_check is not migrated in master yet."
+        },
+        "embedding_run": {
+          "title": "embedding_run",
+          "description": "Embedding result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "embedding_run",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/embedding_run"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "embedding_run",
+              "payload": {
+                "embedding_action": "status"
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.admin.embedding_run is not migrated in master yet."
+        },
+        "ppr_run": {
+          "title": "ppr_run",
+          "description": "PPR result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.admin",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "ppr_run",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/ppr_run"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.admin",
+              "action": "ppr_run",
+              "payload": {
+                "start_vertex": "notes/root"
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.admin.ppr_run is not migrated in master yet."
+        }
+      }
+    },
+    "payloads": {
+      "aql_query": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.aql_query."
+      },
+      "aql_explain": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.aql_explain."
+      },
+      "aql_profile": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.aql_profile."
+      },
+      "aql_build": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "collection"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.aql_build."
+      },
+      "template_execute": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.template_execute."
+      },
+      "sync_run": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.sync_run."
+      },
+      "optimize_run": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.optimize_run."
+      },
+      "quality_check": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.quality_check."
+      },
+      "embedding_run": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "embedding_action"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.embedding_run."
+      },
+      "ppr_run": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "start_vertex"
+        ],
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "AQL query string for aql_query, aql_explain, aql_profile, or view search."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Collection for aql_build."
+          },
+          "filters": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured filters for aql_build."
+          },
+          "sort": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Structured sort for aql_build."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Result or builder limit."
+          },
+          "return_fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Fields for aql_build RETURN projection."
+          },
+          "max_plans": {
+            "type": "integer",
+            "minimum": 1,
+            "default": 1,
+            "description": "Maximum query plans for explain/profile."
+          },
+          "suggest_indexes": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether explain should include index suggestions."
+          },
+          "name": {
+            "type": "string",
+            "description": "Template name for template_execute."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template parameters or action-specific nested params."
+          },
+          "dry_run": {
+            "type": "boolean",
+            "description": "Preview admin optimization action without mutation."
+          },
+          "days": {
+            "type": "integer",
+            "description": "Lookback window for optimize_run."
+          },
+          "alpha": {
+            "type": "number",
+            "description": "Optimization or PPR alpha."
+          },
+          "top_k": {
+            "type": "integer",
+            "description": "Number of top rows."
+          },
+          "orphan_limit": {
+            "type": "integer",
+            "description": "Quality check orphan limit."
+          },
+          "embedding_action": {
+            "type": "string",
+            "enum": [
+              "generate",
+              "search",
+              "status"
+            ],
+            "description": "Embedding action."
+          },
+          "batch_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Embedding batch size."
+          },
+          "max_iter": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "PPR max iterations."
+          },
+          "min_score": {
+            "type": "number",
+            "description": "PPR minimum score."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.admin.ppr_run."
+      }
     }
   }
 }

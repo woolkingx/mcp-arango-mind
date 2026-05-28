@@ -5,11 +5,19 @@
   "description": "Handbook-style projections over notes, edges, topology, and view readiness.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe", "call"],
+      "enum": [
+        "list",
+        "search",
+        "describe",
+        "call"
+      ],
       "description": "Small control verb for the atlas surface."
     },
     "payload": {
@@ -18,22 +26,49 @@
       "properties": {
         "target": {
           "type": "string",
-          "description": "Atlas query profile id: atlas.index, atlas.focus, atlas.facets, atlas.viewpoints, or atlas.audit."
+          "description": "Atlas query profile id: atlas.index, atlas.focus, atlas.facets, atlas.types, atlas.viewpoints, or atlas.audit."
         },
         "params": {
           "type": "object",
           "additionalProperties": false,
           "properties": {
             "root": {
-              "type": "string",
+              "type": [
+                "string",
+                "array"
+              ],
+              "items": {
+                "type": "string"
+              },
               "pattern": "^notes/[^/]+$",
-              "description": "Root note id for rooted atlas profiles."
+              "description": "Root note id for rooted graph profiles, or type prefix array for atlas.types."
+            },
+            "mode": {
+              "type": "string",
+              "enum": [
+                "table",
+                "suggest",
+                "tree"
+              ],
+              "default": "table",
+              "description": "View mode for atlas.types."
+            },
+            "query": {
+              "type": "string",
+              "description": "Optional phrase for atlas.types suggest mode."
+            },
+            "tags": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "description": "Optional tag hints for atlas.types suggest mode."
             },
             "depth": {
               "type": "integer",
               "minimum": 1,
               "maximum": 4,
-              "description": "Traversal depth for atlas.index."
+              "description": "Traversal depth for atlas.index or atlas.types tree mode."
             },
             "limit": {
               "type": "integer",
@@ -41,9 +76,17 @@
               "maximum": 500,
               "description": "Maximum profile result rows returned."
             },
+            "examples": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 5,
+              "description": "Maximum example note titles per atlas.types row."
+            },
             "viewpoints": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string"
+              },
               "minItems": 1,
               "description": "Optional viewpoint terms for atlas.viewpoints."
             },
@@ -58,7 +101,9 @@
         },
         "keywords": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "minItems": 1,
           "description": "Search keywords for profile discovery."
         },
@@ -71,60 +116,601 @@
         },
         "format": {
           "type": "string",
-          "enum": ["json", "md"],
+          "enum": [
+            "json",
+            "md"
+          ],
           "default": "md",
           "description": "Output format."
         }
       }
     }
   },
-  "allOf": [
-    {
-      "if": { "properties": { "action": { "const": "search" } } },
-      "then": { "properties": { "payload": { "required": ["keywords"] } } }
+  "$defs": {
+    "tool": {
+      "title": "MCP Atlas Owner",
+      "description": "Handbook-style projections over notes, edges, topology, and view readiness.",
+      "const": "mcp.tool.atlas"
     },
-    {
-      "if": { "properties": { "action": { "const": "describe" } } },
-      "then": { "properties": { "payload": { "required": ["target"] } } }
-    },
-    {
-      "if": { "properties": { "action": { "const": "call" } } },
-      "then": { "properties": { "payload": { "required": ["target"] } } }
-    }
-  ],
-  "x-tool": {
-    "name": "mcp.tool.atlas",
-    "title": "MCP Atlas Owner",
-    "description": "Handbook-style projections over notes, edges, topology, and view readiness.",
-    "target": "mcp.tool.atlas",
     "actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list": {
+          "title": "list",
+          "description": "Atlas query profile listing",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.atlas",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.atlas",
+              "action": "list",
+              "payload": {
+                "limit": 20
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "search": {
+          "title": "search",
+          "description": "Atlas query profile keyword matches",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.atlas",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "search",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/search"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.atlas",
+              "action": "search",
+              "payload": {
+                "keywords": [
+                  "types"
+                ],
+                "limit": 5
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "describe": {
+          "title": "describe",
+          "description": "Atlas query profile contract",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.atlas",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "describe",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/describe"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.atlas",
+              "action": "describe",
+              "payload": {
+                "target": "atlas.types"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "call": {
+          "title": "call",
+          "description": "Atlas projection query result",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.atlas",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "call",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/call"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.atlas",
+              "action": "call",
+              "payload": {
+                "target": "atlas.types",
+                "params": {
+                  "mode": "table",
+                  "limit": 20
+                }
+              }
+            }
+          ],
+          "readOnly": true
+        }
+      }
+    },
+    "payloads": {
       "list": {
-        "handler": "atlasOwner.list",
-        "effect": "read",
-        "idempotent": true,
-        "openWorld": false,
-        "evidence": "Atlas query profile listing"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Atlas query profile id: atlas.index, atlas.focus, atlas.facets, atlas.types, atlas.viewpoints, or atlas.audit."
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "root": {
+                "type": [
+                  "string",
+                  "array"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "pattern": "^notes/[^/]+$",
+                "description": "Root note id for rooted graph profiles, or type prefix array for atlas.types."
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "table",
+                  "suggest",
+                  "tree"
+                ],
+                "default": "table",
+                "description": "View mode for atlas.types."
+              },
+              "query": {
+                "type": "string",
+                "description": "Optional phrase for atlas.types suggest mode."
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional tag hints for atlas.types suggest mode."
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4,
+                "description": "Traversal depth for atlas.index or atlas.types tree mode."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500,
+                "description": "Maximum profile result rows returned."
+              },
+              "examples": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5,
+                "description": "Maximum example note titles per atlas.types row."
+              },
+              "viewpoints": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "description": "Optional viewpoint terms for atlas.viewpoints."
+              },
+              "weakBelow": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "description": "Coverage count below which a viewpoint is weak."
+              }
+            },
+            "description": "Profile-specific read parameters. Atlas always reads the notes and edges collections."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for profile discovery."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum profile records or result rows returned."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.atlas.list."
       },
       "search": {
-        "handler": "atlasOwner.search",
-        "effect": "read",
-        "idempotent": true,
-        "openWorld": false,
-        "evidence": "Atlas query profile keyword matches"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "keywords"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Atlas query profile id: atlas.index, atlas.focus, atlas.facets, atlas.types, atlas.viewpoints, or atlas.audit."
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "root": {
+                "type": [
+                  "string",
+                  "array"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "pattern": "^notes/[^/]+$",
+                "description": "Root note id for rooted graph profiles, or type prefix array for atlas.types."
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "table",
+                  "suggest",
+                  "tree"
+                ],
+                "default": "table",
+                "description": "View mode for atlas.types."
+              },
+              "query": {
+                "type": "string",
+                "description": "Optional phrase for atlas.types suggest mode."
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional tag hints for atlas.types suggest mode."
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4,
+                "description": "Traversal depth for atlas.index or atlas.types tree mode."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500,
+                "description": "Maximum profile result rows returned."
+              },
+              "examples": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5,
+                "description": "Maximum example note titles per atlas.types row."
+              },
+              "viewpoints": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "description": "Optional viewpoint terms for atlas.viewpoints."
+              },
+              "weakBelow": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "description": "Coverage count below which a viewpoint is weak."
+              }
+            },
+            "description": "Profile-specific read parameters. Atlas always reads the notes and edges collections."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for profile discovery."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum profile records or result rows returned."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.atlas.search."
       },
       "describe": {
-        "handler": "atlasOwner.describe",
-        "effect": "read",
-        "idempotent": true,
-        "openWorld": false,
-        "evidence": "Atlas query profile contract"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Atlas query profile id: atlas.index, atlas.focus, atlas.facets, atlas.types, atlas.viewpoints, or atlas.audit."
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "root": {
+                "type": [
+                  "string",
+                  "array"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "pattern": "^notes/[^/]+$",
+                "description": "Root note id for rooted graph profiles, or type prefix array for atlas.types."
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "table",
+                  "suggest",
+                  "tree"
+                ],
+                "default": "table",
+                "description": "View mode for atlas.types."
+              },
+              "query": {
+                "type": "string",
+                "description": "Optional phrase for atlas.types suggest mode."
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional tag hints for atlas.types suggest mode."
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4,
+                "description": "Traversal depth for atlas.index or atlas.types tree mode."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500,
+                "description": "Maximum profile result rows returned."
+              },
+              "examples": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5,
+                "description": "Maximum example note titles per atlas.types row."
+              },
+              "viewpoints": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "description": "Optional viewpoint terms for atlas.viewpoints."
+              },
+              "weakBelow": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "description": "Coverage count below which a viewpoint is weak."
+              }
+            },
+            "description": "Profile-specific read parameters. Atlas always reads the notes and edges collections."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for profile discovery."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum profile records or result rows returned."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.atlas.describe."
       },
       "call": {
-        "handler": "atlasOwner.call",
-        "effect": "read",
-        "idempotent": true,
-        "openWorld": true,
-        "evidence": "Atlas projection query result"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Atlas query profile id: atlas.index, atlas.focus, atlas.facets, atlas.types, atlas.viewpoints, or atlas.audit."
+          },
+          "params": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "root": {
+                "type": [
+                  "string",
+                  "array"
+                ],
+                "items": {
+                  "type": "string"
+                },
+                "pattern": "^notes/[^/]+$",
+                "description": "Root note id for rooted graph profiles, or type prefix array for atlas.types."
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "table",
+                  "suggest",
+                  "tree"
+                ],
+                "default": "table",
+                "description": "View mode for atlas.types."
+              },
+              "query": {
+                "type": "string",
+                "description": "Optional phrase for atlas.types suggest mode."
+              },
+              "tags": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Optional tag hints for atlas.types suggest mode."
+              },
+              "depth": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4,
+                "description": "Traversal depth for atlas.index or atlas.types tree mode."
+              },
+              "limit": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 500,
+                "description": "Maximum profile result rows returned."
+              },
+              "examples": {
+                "type": "integer",
+                "minimum": 0,
+                "maximum": 5,
+                "description": "Maximum example note titles per atlas.types row."
+              },
+              "viewpoints": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "minItems": 1,
+                "description": "Optional viewpoint terms for atlas.viewpoints."
+              },
+              "weakBelow": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 20,
+                "description": "Coverage count below which a viewpoint is weak."
+              }
+            },
+            "description": "Profile-specific read parameters. Atlas always reads the notes and edges collections."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for profile discovery."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum profile records or result rows returned."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.atlas.call."
       }
     }
   }

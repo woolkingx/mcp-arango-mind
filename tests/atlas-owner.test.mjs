@@ -25,8 +25,8 @@ describe('atlas owner handlers', () => {
   it('lists atlas.xxx profiles', () => {
     const result = handlers['atlasOwner.list']({})
     const ids = result.profiles.map(profile => profile.id)
-    assert.deepEqual(ids, ['atlas.index', 'atlas.focus', 'atlas.facets', 'atlas.viewpoints', 'atlas.audit'])
-    assert.equal(result.total, 5)
+    assert.deepEqual(ids, ['atlas.index', 'atlas.focus', 'atlas.facets', 'atlas.types', 'atlas.viewpoints', 'atlas.audit'])
+    assert.equal(result.total, 6)
   })
 
   it('searches profiles by keyword', () => {
@@ -71,6 +71,81 @@ describe('atlas owner handlers', () => {
       () => handlers['atlasOwner.call']({
         target: 'atlas.facets',
         params: { nodeCollection: '_users' }
+      }),
+      /atlas collection override is not allowed/
+    )
+    assert.equal(api.calls.length, 0)
+  })
+
+  it('atlas.facets unwraps type coordinates before returning navigation facets', async () => {
+    await handlers['atlasOwner.call']({
+      target: 'atlas.facets',
+      params: { limit: 20 }
+    })
+    const { query, bindVars } = api.calls[0].args
+    assert.equal(bindVars['@nodeCollection'], 'notes')
+    assert.match(query, /FILTER IS_ARRAY\(n\.type\) AND LENGTH\(n\.type\) > 0/)
+    assert.match(query, /FILTER LENGTH\(n\.type\) == LENGTH\(validTypeSegments\)/)
+    assert.match(query, /LET typePathValue = CONCAT_SEPARATOR\("\/", validTypeSegments\)/)
+    assert.match(query, /COLLECT root = rootValue, object = objectValue, aspect = aspectValue, subaspect = subaspectValue, typePath = typePathValue/)
+    assert.match(query, /RETURN { root, object, aspect, subaspect, type_path: typePath, count }/)
+    assert.match(query, /FILTER IS_STRING\(tag\)/)
+    assert.match(query, /FILTER e\.rel == null OR IS_STRING\(e\.rel\)/)
+  })
+
+  it('atlas.types table reads the runtime type rule and observed type coordinates', async () => {
+    api.callOperation = async (name, args) => {
+      api.calls.push({ name, args })
+      return {
+        result: [
+          { root: 'knowledge', object: 'runtime-schema', aspect: 'rule', subaspect: '-', count: 3, examples: ['Runtime schema note'] }
+        ]
+      }
+    }
+    const result = await handlers['atlasOwner.call']({
+      target: 'atlas.types',
+      params: { mode: 'table', root: ['knowledge'], examples: 1, limit: 10 }
+    })
+    assert.equal(result.profile, 'atlas.types')
+    assert.equal(result.mode, 'table')
+    assert.deepEqual(result.runtimeRule.firstLevel, ['todo', 'ongoing', 'archived', 'knowledge'])
+    assert.deepEqual(result.results[0].root, 'knowledge')
+    assert.equal(api.calls[0].name, 'createAqlQueryCursor')
+    assert.deepEqual(api.calls[0].args.bindVars.root, ['knowledge'])
+    assert.deepEqual(api.calls[0].args.bindVars.firstLevel, ['todo', 'ongoing', 'archived', 'knowledge'])
+    assert.equal(api.calls[0].args.bindVars['@nodeCollection'], 'notes')
+    assert.equal(api.calls[0].args.bindVars.depth, undefined)
+    assert.equal(api.calls[0].args.bindVars.query, undefined)
+    assert.equal(api.calls[0].args.bindVars.tags, undefined)
+    assert.match(api.calls[0].args.query, /SLICE\(n\.type, 0, LENGTH\(rootPrefix\)\)/)
+  })
+
+  it('atlas.types suggest keeps scoring deterministic and bounded', async () => {
+    api.callOperation = async (name, args) => {
+      api.calls.push({ name, args })
+      return {
+        result: [
+          { type: ['knowledge', 'runtime-schema', 'rule'], type_path: 'knowledge/runtime-schema/rule', score: 8, count: 2, examples: ['Runtime schema note'] }
+        ]
+      }
+    }
+    const result = await handlers['atlasOwner.call']({
+      target: 'atlas.types',
+      params: { mode: 'suggest', query: 'schema', tags: ['runtime'], examples: 2, limit: 5 }
+    })
+    assert.equal(result.mode, 'suggest')
+    assert.equal(api.calls[0].args.bindVars.query, 'schema')
+    assert.deepEqual(api.calls[0].args.bindVars.tags, ['runtime'])
+    assert.equal(api.calls[0].args.bindVars.root, undefined)
+    assert.equal(api.calls[0].args.bindVars.depth, undefined)
+    assert.match(api.calls[0].args.query, /LET score = queryHit/)
+  })
+
+  it('atlas.types rejects collection overrides before AQL dispatch', async () => {
+    await assert.rejects(
+      () => handlers['atlasOwner.call']({
+        target: 'atlas.types',
+        params: { collection: '_users' }
       }),
       /atlas collection override is not allowed/
     )

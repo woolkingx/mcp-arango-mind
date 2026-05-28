@@ -11,6 +11,7 @@ import { createArangoSurfaceHandlers } from './arango-surface.mjs'
 import { createTemplateOwnerHandlers } from './template-owner.mjs'
 import { createCategoryOwnerHandlers } from './tool-category-owner.mjs'
 import { createMcpMetaHandlers } from './mcp-meta.mjs'
+import { createMcpHelpHandlers } from './mcp-help.mjs'
 import { createAtlasOwnerHandlers } from './atlas-owner.mjs'
 
 const CATEGORY_DEFS = [
@@ -35,7 +36,8 @@ export function createCore(config) {
     ...createArangoSurfaceHandlers(arangoApi),
     ...createTemplateOwnerHandlers(arangoApi, { templatesDir }),
     ...createAtlasOwnerHandlers(arangoApi),
-    ...createMcpMetaHandlers(() => toolsHandle)
+    ...createMcpMetaHandlers(() => toolsHandle),
+    ...createMcpHelpHandlers(() => toolsHandle)
   }
   for (const def of CATEGORY_DEFS) {
     Object.assign(customHandlers, createCategoryOwnerHandlers(arangoApi, def))

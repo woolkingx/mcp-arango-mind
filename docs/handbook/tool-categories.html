@@ -71,15 +71,16 @@
         <h2>mcp.tool.collection Module Spec</h2>
         <table>
           <tr><th>Field</th><th>Value</th></tr>
-          <tr><td>Owns</td><td>Collection CRUD, indexes, schema registration, document validation, bulk operations, import/export, stats, type tree.</td></tr>
+          <tr><td>Owns</td><td>Generic collection CRUD, document operations, indexes, bulk operations, import/export, stats, and raw Arango collection API dispatch.</td></tr>
           <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
           <tr><td>Target namespace</td><td>ArangoDB OpenAPI <code>operationId</code> values inside the <code>Collections</code>, <code>Documents</code>, and <code>Indexes</code> tag whitelist.</td></tr>
-          <tr><td>Schema entry</td><td>Collection document schema validation is reached through <code>createCollection</code> and <code>updateCollectionProperties</code>. Their OpenAPI request body owns <code>schema.level</code>, <code>schema.message</code>, and <code>schema.rule</code>.</td></tr>
-          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code> read. <code>call</code> inherits the underlying OpenAPI operation effect.</td></tr>
-          <tr><td>Forbidden</td><td>Graph semantics, view config, AQL transitions, local reimplementation of Draft-4 document schema validation, and operation ids outside the category whitelist.</td></tr>
-          <tr><td>Evidence</td><td>Operation listing, operation contract, local OpenAPI payload validation, or live ArangoDB CRUD validation response for required fields, type, enum, additional properties, readback, update, replace, and delete.</td></tr>
+          <tr><td>Schema boundary</td><td>Runtime collection schemas live under <code>config/schemas/*.json</code> and are not ArangoDB registration templates. The collection owner entry applies the runtime schema operator by <code>params.collection</code> for collection document writes before Arango dispatch. Arango <code>schema.level</code>, <code>schema.message</code>, and <code>schema.rule</code> are raw OpenAPI operation payload fields only.</td></tr>
+          <tr><td>Transitions</td><td><code>list</code>/<code>search</code>/<code>describe</code> read. <code>call</code> inherits the underlying OpenAPI operation effect after the collection owner boundary applies any collection runtime schema gate.</td></tr>
+          <tr><td>Forbidden</td><td>Graph semantics, view config, AQL transitions, runtime schema ownership, <code>notes.type</code> coordinate rules, hardcoded runtime-schema operation lists, and operation ids outside the category whitelist.</td></tr>
+          <tr><td>Evidence</td><td>Operation listing, operation contract, local OpenAPI payload validation, raw ArangoDB operation response, and collection owner tests showing schema-keyed write validation before dispatch. Runtime document rule evidence belongs to the runtime schema owner.</td></tr>
           <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
         </table>
+        <p>The collection owner entry must not decide runtime validation from a hand-maintained set such as <code>createDocument</code> or <code>replaceDocument</code>. It must derive the write boundary from the collection payload and the OpenAPI operation metadata, then call the runtime schema operator for the named collection when a runtime schema exists.</p>
       </section>
 
       <section id="module-spec-view">
@@ -128,13 +129,23 @@
         <h2>mcp.tool.atlas Module Spec</h2>
         <table>
           <tr><th>Field</th><th>Value</th></tr>
-          <tr><td>Owns</td><td>Handbook-style projections over note ontology, edge topology, viewpoint coverage, and graph/view readiness hints.</td></tr>
+          <tr><td>Owns</td><td>Handbook-style projections over note ontology, type coordinates, edge topology, viewpoint coverage, and graph/view readiness hints.</td></tr>
           <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code>.</td></tr>
-          <tr><td>Target namespace</td><td><code>atlas.index</code>, <code>atlas.focus</code>, <code>atlas.facets</code>, <code>atlas.viewpoints</code>, <code>atlas.audit</code>.</td></tr>
+          <tr><td>Target namespace</td><td><code>atlas.index</code>, <code>atlas.focus</code>, <code>atlas.facets</code>, <code>atlas.types</code>, <code>atlas.viewpoints</code>, <code>atlas.audit</code>.</td></tr>
           <tr><td>Transitions</td><td>All transitions are read-only AQL projections through <code>createAqlQueryCursor</code>.</td></tr>
-          <tr><td>Forbidden</td><td>Collection override, roots outside <code>notes/&lt;key&gt;</code>, collection CRUD, graph mutation, view lifecycle mutation, raw admin AQL ownership, and moving <code>node.tree</code> out of collection.</td></tr>
-          <tr><td>Evidence</td><td><code>{profile, count, results}</code> envelope plus audit recommendations for graph/view/index substrate.</td></tr>
+          <tr><td>Forbidden</td><td>Collection override, roots outside <code>notes/&lt;key&gt;</code> for rooted profiles, collection CRUD, graph mutation, view lifecycle mutation, raw admin AQL ownership, and adding separate type targets when <code>atlas.types</code> params can express the view.</td></tr>
+          <tr><td>Evidence</td><td><code>{profile, count, results}</code> envelope, <code>{mode, runtimeRule}</code> for <code>atlas.types</code>, plus audit recommendations for graph/view/index substrate.</td></tr>
           <tr><td>Gate</td><td><a href="#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a></td></tr>
+        </table>
+        <p><code>atlas.types</code> is the single type-coordinate profile. It should not split into <code>atlas.type_suggest</code> or <code>atlas.type_tree</code>; those are parameterized views of the same coordinate surface.</p>
+        <table>
+          <tr><th>Param</th><th>Meaning</th></tr>
+          <tr><td><code>mode</code></td><td><code>table</code> for compact legal type coordinates, <code>suggest</code> for ranked placement candidates, or <code>tree</code> for explicit branch expansion.</td></tr>
+          <tr><td><code>query</code></td><td>Optional title/content/search phrase used by <code>suggest</code>.</td></tr>
+          <tr><td><code>tags</code></td><td>Optional tag hints used by <code>suggest</code>.</td></tr>
+          <tr><td><code>root</code></td><td>Optional type prefix array used by <code>table</code> or <code>tree</code> to narrow the coordinate space.</td></tr>
+          <tr><td><code>depth</code></td><td>Optional tree expansion depth; ignored by table and suggest modes.</td></tr>
+          <tr><td><code>examples</code></td><td>Maximum sample titles per type coordinate.</td></tr>
         </table>
       </section>
 

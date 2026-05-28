@@ -1,0 +1,63 @@
+{
+  "name": "edges",
+  "collection": "edges",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": ["tags", "weight", "created_at"],
+    "properties": {
+      "tags": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Tags attached to the edge. Edges also inherit natural context from connected note tags."
+      },
+      "title": {
+        "type": "string",
+        "description": "Relationship title."
+      },
+      "content": {
+        "type": "string",
+        "maxLength": 200,
+        "description": "Relationship description."
+      },
+      "weight": {
+        "type": "number",
+        "description": "Relationship weight.",
+        "default": 10
+      },
+      "created_at": {
+        "type": "string",
+        "description": "Creation timestamp.",
+        "default": "auto-generated"
+      }
+    },
+    "additionalProperties": true,
+    "x-methods": {
+      "is_weighted": {
+        "properties": {
+          "weight": { "minimum": 1 }
+        }
+      },
+      "is_tagged": {
+        "properties": {
+          "tags": { "minItems": 1 }
+        }
+      },
+      "has_description": {
+        "properties": {
+          "content": { "minLength": 1 }
+        }
+      }
+    },
+    "x-tests": {
+      "is_weighted": ["valid_normal", "zero_weight"],
+      "is_tagged": ["valid_normal", "empty_tags"],
+      "has_description": ["valid_normal", "missing"]
+    },
+    "x-docs": {
+      "intent": "General-purpose edge between documents. For tag-level graph edges, see tag_edges schema.",
+      "category": "graph",
+      "notes": "Used for explicit document-to-document relationships. Weight default 10. Distinct from tag_edges, which are generated from tag co-occurrence."
+    }
+  }
+}

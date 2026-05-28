@@ -2,42 +2,539 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-view.schema.json",
   "title": "MCP Tool View",
-  "description": "ArangoSearch view and analyzer category scoped to Views and Analyzers tags.",
+  "description": "search_tools first for params. View: create(create ArangoSearch view) drop(drop view) list(list all views) get(get view properties) update(update view properties) search(execute search query)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe", "call"]
+      "enum": [
+        "create",
+        "drop",
+        "list",
+        "get",
+        "update",
+        "search"
+      ],
+      "description": "View operation to perform."
     },
     "payload": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
+      "description": "View action payload. Required fields depend on action and are enforced by the view owner.",
       "properties": {
-        "target": { "type": "string", "description": "OpenAPI operationId within Views or Analyzers tags." },
-        "params": { "type": "object" },
-        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
-        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+        "name": {
+          "type": "string",
+          "description": "View name."
+        },
+        "type": {
+          "type": "string",
+          "default": "arangosearch",
+          "description": "View type."
+        },
+        "properties": {
+          "type": "object",
+          "description": "View properties for create or update."
+        },
+        "query": {
+          "type": "string",
+          "description": "AQL search query."
+        },
+        "bind_vars": {
+          "type": "object",
+          "description": "AQL bind variables."
+        },
+        "bindVars": {
+          "type": "object",
+          "description": "AQL bind variables alias."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "md"
+          ],
+          "default": "md",
+          "description": "Output format."
+        }
       }
     }
   },
-  "allOf": [
-    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
-    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
-    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
-  ],
-  "x-tool": {
-    "name": "mcp.tool.view",
-    "title": "MCP Tool View",
-    "description": "ArangoSearch view and analyzer category scoped to Views and Analyzers tags.",
-    "target": "mcp.tool.view",
+  "$defs": {
+    "tool": {
+      "title": "MCP Tool View",
+      "description": "search_tools first for params. View: create(create ArangoSearch view) drop(drop view) list(list all views) get(get view properties) update(update view properties) search(execute search query)",
+      "const": "mcp.tool.view"
+    },
     "actions": {
-      "list":     { "handler": "categoryView.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "View-tag operation listing" },
-      "search":   { "handler": "categoryView.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "View-tag operation matches" },
-      "describe": { "handler": "categoryView.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "View-tag operation contract" },
-      "call":     { "handler": "categoryView.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB View operation response" }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "title": "create",
+          "description": "Created View.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.view",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "create",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/create"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.view",
+              "action": "create",
+              "payload": {
+                "name": "notes_view",
+                "type": "arangosearch"
+              }
+            }
+          ]
+        },
+        "drop": {
+          "title": "drop",
+          "description": "Dropped View.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.view",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "drop",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/drop"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.view",
+              "action": "drop",
+              "payload": {
+                "name": "notes_view"
+              }
+            }
+          ]
+        },
+        "list": {
+          "title": "list",
+          "description": "View listing.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.view",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.view",
+              "action": "list",
+              "payload": {}
+            }
+          ],
+          "readOnly": true
+        },
+        "get": {
+          "title": "get",
+          "description": "View properties.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.view",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "get",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/get"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.view",
+              "action": "get",
+              "payload": {
+                "name": "notes_view"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "update": {
+          "title": "update",
+          "description": "Updated View properties.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.view",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "update",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/update"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.view",
+              "action": "update",
+              "payload": {
+                "name": "notes_view",
+                "properties": {}
+              }
+            }
+          ]
+        },
+        "search": {
+          "title": "search",
+          "description": "AQL search result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.view",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "search",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/search"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.view",
+              "action": "search",
+              "payload": {
+                "query": "FOR n IN notes RETURN n"
+              }
+            }
+          ],
+          "readOnly": true
+        }
+      }
+    },
+    "payloads": {
+      "create": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "View name."
+          },
+          "type": {
+            "type": "string",
+            "default": "arangosearch",
+            "description": "View type."
+          },
+          "properties": {
+            "type": "object",
+            "description": "View properties for create or update."
+          },
+          "query": {
+            "type": "string",
+            "description": "AQL search query."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.view.create."
+      },
+      "drop": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "View name."
+          },
+          "type": {
+            "type": "string",
+            "default": "arangosearch",
+            "description": "View type."
+          },
+          "properties": {
+            "type": "object",
+            "description": "View properties for create or update."
+          },
+          "query": {
+            "type": "string",
+            "description": "AQL search query."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.view.drop."
+      },
+      "list": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "View name."
+          },
+          "type": {
+            "type": "string",
+            "default": "arangosearch",
+            "description": "View type."
+          },
+          "properties": {
+            "type": "object",
+            "description": "View properties for create or update."
+          },
+          "query": {
+            "type": "string",
+            "description": "AQL search query."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.view.list."
+      },
+      "get": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "View name."
+          },
+          "type": {
+            "type": "string",
+            "default": "arangosearch",
+            "description": "View type."
+          },
+          "properties": {
+            "type": "object",
+            "description": "View properties for create or update."
+          },
+          "query": {
+            "type": "string",
+            "description": "AQL search query."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.view.get."
+      },
+      "update": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name",
+          "properties"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "View name."
+          },
+          "type": {
+            "type": "string",
+            "default": "arangosearch",
+            "description": "View type."
+          },
+          "properties": {
+            "type": "object",
+            "description": "View properties for create or update."
+          },
+          "query": {
+            "type": "string",
+            "description": "AQL search query."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.view.update."
+      },
+      "search": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "query"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "View name."
+          },
+          "type": {
+            "type": "string",
+            "default": "arangosearch",
+            "description": "View type."
+          },
+          "properties": {
+            "type": "object",
+            "description": "View properties for create or update."
+          },
+          "query": {
+            "type": "string",
+            "description": "AQL search query."
+          },
+          "bind_vars": {
+            "type": "object",
+            "description": "AQL bind variables."
+          },
+          "bindVars": {
+            "type": "object",
+            "description": "AQL bind variables alias."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.view.search."
+      }
     }
   }
 }

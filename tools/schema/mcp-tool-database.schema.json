@@ -2,42 +2,762 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-database.schema.json",
   "title": "MCP Tool Database",
-  "description": "ArangoDB database lifecycle category scoped to the Databases tag.",
+  "description": "search_tools first for params. Database: list(list databases) get_active(current database) get_focused(alias for get_active) switch(switch database profile) get_resolution(profile resolution chain) backup(backup collections) restore(restore from backup)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe", "call"]
+      "enum": [
+        "list",
+        "get_active",
+        "get_focused",
+        "switch",
+        "get_resolution",
+        "backup",
+        "restore"
+      ],
+      "description": "Database operation to perform."
     },
     "payload": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
+      "description": "Database action payload. Required fields depend on action and are enforced by the database owner.",
       "properties": {
-        "target": { "type": "string", "description": "OpenAPI operationId within the Databases tag." },
-        "params": { "type": "object" },
-        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
-        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+        "profile": {
+          "type": "string",
+          "description": "Profile key for switch."
+        },
+        "database": {
+          "type": "string",
+          "description": "Alias for profile when switching."
+        },
+        "output_dir": {
+          "type": "string",
+          "description": "Backup output directory."
+        },
+        "input_dir": {
+          "type": "string",
+          "description": "Restore input directory."
+        },
+        "collections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Collections to backup or restore."
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "collection",
+            "graph",
+            "view",
+            "all"
+          ],
+          "description": "Backup type."
+        },
+        "conflict": {
+          "type": "string",
+          "enum": [
+            "skip",
+            "replace",
+            "update"
+          ],
+          "default": "skip",
+          "description": "Restore conflict policy."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "md"
+          ],
+          "default": "md",
+          "description": "Output format."
+        }
       }
     }
   },
-  "allOf": [
-    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
-    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
-    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
-  ],
-  "x-tool": {
-    "name": "mcp.tool.database",
-    "title": "MCP Tool Database",
-    "description": "ArangoDB database lifecycle category scoped to the Databases tag.",
-    "target": "mcp.tool.database",
+  "$defs": {
+    "tool": {
+      "title": "MCP Tool Database",
+      "description": "search_tools first for params. Database: list(list databases) get_active(current database) get_focused(alias for get_active) switch(switch database profile) get_resolution(profile resolution chain) backup(backup collections) restore(restore from backup)",
+      "const": "mcp.tool.database"
+    },
     "actions": {
-      "list":     { "handler": "categoryDatabase.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Databases-tag operation listing" },
-      "search":   { "handler": "categoryDatabase.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Databases-tag operation matches" },
-      "describe": { "handler": "categoryDatabase.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Databases-tag operation contract" },
-      "call":     { "handler": "categoryDatabase.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB Databases operation response" }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list": {
+          "title": "list",
+          "description": "Database listing.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.database",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.database",
+              "action": "list",
+              "payload": {}
+            }
+          ],
+          "readOnly": true
+        },
+        "get_active": {
+          "title": "get_active",
+          "description": "Current database profile.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.database",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "get_active",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/get_active"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.database",
+              "action": "get_active",
+              "payload": {}
+            }
+          ],
+          "readOnly": true
+        },
+        "get_focused": {
+          "title": "get_focused",
+          "description": "Focused database profile.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.database",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "get_focused",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/get_focused"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.database",
+              "action": "get_focused",
+              "payload": {}
+            }
+          ],
+          "readOnly": true
+        },
+        "switch": {
+          "title": "switch",
+          "description": "Profile switch result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.database",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "switch",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/switch"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.database",
+              "action": "switch",
+              "payload": {
+                "profile": "default"
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.database.switch is not migrated in master yet."
+        },
+        "get_resolution": {
+          "title": "get_resolution",
+          "description": "Profile resolution chain.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.database",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "get_resolution",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/get_resolution"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.database",
+              "action": "get_resolution",
+              "payload": {
+                "profile": "default"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.database.get_resolution is not migrated in master yet."
+        },
+        "backup": {
+          "title": "backup",
+          "description": "Database backup result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.database",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "backup",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/backup"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.database",
+              "action": "backup",
+              "payload": {
+                "output_dir": ".backup/arango",
+                "collections": [
+                  "notes"
+                ]
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.database.backup is not migrated in master yet."
+        },
+        "restore": {
+          "title": "restore",
+          "description": "Database restore result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.database",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "restore",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/restore"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.database",
+              "action": "restore",
+              "payload": {
+                "input_dir": ".backup/arango"
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.database.restore is not migrated in master yet."
+        }
+      }
+    },
+    "payloads": {
+      "list": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Profile key for switch."
+          },
+          "database": {
+            "type": "string",
+            "description": "Alias for profile when switching."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections to backup or restore."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "graph",
+              "view",
+              "all"
+            ],
+            "description": "Backup type."
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "replace",
+              "update"
+            ],
+            "default": "skip",
+            "description": "Restore conflict policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.database.list."
+      },
+      "get_active": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Profile key for switch."
+          },
+          "database": {
+            "type": "string",
+            "description": "Alias for profile when switching."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections to backup or restore."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "graph",
+              "view",
+              "all"
+            ],
+            "description": "Backup type."
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "replace",
+              "update"
+            ],
+            "default": "skip",
+            "description": "Restore conflict policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.database.get_active."
+      },
+      "get_focused": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Profile key for switch."
+          },
+          "database": {
+            "type": "string",
+            "description": "Alias for profile when switching."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections to backup or restore."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "graph",
+              "view",
+              "all"
+            ],
+            "description": "Backup type."
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "replace",
+              "update"
+            ],
+            "default": "skip",
+            "description": "Restore conflict policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.database.get_focused."
+      },
+      "switch": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Profile key for switch."
+          },
+          "database": {
+            "type": "string",
+            "description": "Alias for profile when switching."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections to backup or restore."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "graph",
+              "view",
+              "all"
+            ],
+            "description": "Backup type."
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "replace",
+              "update"
+            ],
+            "default": "skip",
+            "description": "Restore conflict policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.database.switch."
+      },
+      "get_resolution": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "profile"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Profile key for switch."
+          },
+          "database": {
+            "type": "string",
+            "description": "Alias for profile when switching."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections to backup or restore."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "graph",
+              "view",
+              "all"
+            ],
+            "description": "Backup type."
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "replace",
+              "update"
+            ],
+            "default": "skip",
+            "description": "Restore conflict policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.database.get_resolution."
+      },
+      "backup": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "output_dir"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Profile key for switch."
+          },
+          "database": {
+            "type": "string",
+            "description": "Alias for profile when switching."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections to backup or restore."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "graph",
+              "view",
+              "all"
+            ],
+            "description": "Backup type."
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "replace",
+              "update"
+            ],
+            "default": "skip",
+            "description": "Restore conflict policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.database.backup."
+      },
+      "restore": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "input_dir"
+        ],
+        "properties": {
+          "profile": {
+            "type": "string",
+            "description": "Profile key for switch."
+          },
+          "database": {
+            "type": "string",
+            "description": "Alias for profile when switching."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Collections to backup or restore."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "collection",
+              "graph",
+              "view",
+              "all"
+            ],
+            "description": "Backup type."
+          },
+          "conflict": {
+            "type": "string",
+            "enum": [
+              "skip",
+              "replace",
+              "update"
+            ],
+            "default": "skip",
+            "description": "Restore conflict policy."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.database.restore."
+      }
     }
   }
 }

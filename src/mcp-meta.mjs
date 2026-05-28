@@ -1,5 +1,6 @@
 const SURFACES = [
   { name: 'mcp.mcp', root: 'mcp/', purpose: 'Expose MCP reference metadata and small MCP-facing helpers.' },
+  { name: 'mcp.help', root: 'mcp/', purpose: 'Expose schema-owned action help without expanding tools/list.' },
   { name: 'mcp.arango', root: 'arango/', purpose: 'Raw ArangoDB OpenAPI discovery and generic operation dispatch.' },
   { name: 'mcp.tool.*', root: 'tools/', purpose: 'Local/custom tool owners split by category.' }
 ]
@@ -91,9 +92,23 @@ export function createMcpMetaHandlers(getTools) {
     throw new Error(`unknown target for mcp.mcp.describe: ${target}`)
   }
 
+  function dispatch(payload, action) {
+    if (action === 'search_tools') {
+      return search({ ...payload, scope: payload.scope || 'tools' })
+    }
+    if (action === 'list_by_category') {
+      return list({ target: 'categories', ...payload })
+    }
+    if (action === 'unload') {
+      return { unloaded: [], not_found: payload.tool_names || payload.tools || [], total_unloaded: 0 }
+    }
+    throw new Error(`unknown mcp metadata action: ${action}`)
+  }
+
   return {
     'mcpMeta.list': list,
     'mcpMeta.search': search,
-    'mcpMeta.describe': describe
+    'mcpMeta.describe': describe,
+    'mcpMeta.dispatch': dispatch
   }
 }

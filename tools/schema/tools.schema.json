@@ -2,16 +2,38 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "tools.schema.json",
   "title": "mcp-arango-mind Tools Schema",
+  "description": "Tool catalog. Category refs live in $defs; each category schema owns its action/event/payload help definitions.",
   "type": "object",
-  "x-tools": [
-    { "$ref": "mcp-mcp.schema.json" },
-    { "$ref": "mcp-arango.schema.json" },
-    { "$ref": "mcp-tool-template.schema.json" },
-    { "$ref": "mcp-tool-database.schema.json" },
-    { "$ref": "mcp-tool-collection.schema.json" },
-    { "$ref": "mcp-tool-view.schema.json" },
-    { "$ref": "mcp-tool-graph.schema.json" },
-    { "$ref": "mcp-tool-admin.schema.json" },
-    { "$ref": "mcp-tool-atlas.schema.json" }
-  ]
+  "$defs": {
+    "mcp.mcp": {
+      "$ref": "mcp-mcp.schema.json"
+    },
+    "mcp.help": {
+      "$ref": "mcp-help.schema.json"
+    },
+    "mcp.arango": {
+      "$ref": "mcp-arango.schema.json"
+    },
+    "mcp.tool.template": {
+      "$ref": "mcp-tool-template.schema.json"
+    },
+    "mcp.tool.database": {
+      "$ref": "mcp-tool-database.schema.json"
+    },
+    "mcp.tool.collection": {
+      "$ref": "mcp-tool-collection.schema.json"
+    },
+    "mcp.tool.view": {
+      "$ref": "mcp-tool-view.schema.json"
+    },
+    "mcp.tool.graph": {
+      "$ref": "mcp-tool-graph.schema.json"
+    },
+    "mcp.tool.admin": {
+      "$ref": "mcp-tool-admin.schema.json"
+    },
+    "mcp.tool.atlas": {
+      "$ref": "mcp-tool-atlas.schema.json"
+    }
+  }
 }

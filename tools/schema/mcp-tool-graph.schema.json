@@ -2,42 +2,2776 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "mcp-tool-graph.schema.json",
   "title": "MCP Tool Graph",
-  "description": "ArangoDB graph category scoped to the Graphs tag.",
+  "description": "search_tools first for params. Graph: create(create named graph) list(list graphs) add_vertex_collection(add vertex collection) add_edge_definition(add edge definition) add_edge(insert edge) traverse(graph traversal) shortest_path(find shortest path) backup(backup graph) restore(restore graph) backup_named(backup all named graphs) validate_integrity(check graph integrity) statistics(graph statistics)",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe", "call"]
+      "enum": [
+        "create",
+        "list",
+        "add_vertex_collection",
+        "add_edge_definition",
+        "add_edge",
+        "traverse",
+        "shortest_path",
+        "backup",
+        "restore",
+        "backup_named",
+        "validate_integrity",
+        "statistics"
+      ],
+      "description": "Graph operation to perform."
     },
     "payload": {
       "type": "object",
-      "additionalProperties": false,
+      "additionalProperties": true,
+      "description": "Graph action payload. Required fields depend on action and are enforced by the graph owner.",
       "properties": {
-        "target": { "type": "string", "description": "OpenAPI operationId within the Graphs tag." },
-        "params": { "type": "object" },
-        "keywords": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
-        "limit": { "type": "integer", "minimum": 1, "maximum": 500, "default": 100 },
-        "format": { "type": "string", "enum": ["json", "md"], "default": "md" }
+        "name": {
+          "type": "string",
+          "description": "Graph name for create."
+        },
+        "graph": {
+          "type": "string",
+          "description": "Graph name for graph operations."
+        },
+        "collection": {
+          "type": "string",
+          "description": "Vertex or edge collection."
+        },
+        "edge_collection": {
+          "type": "string",
+          "description": "Edge collection name."
+        },
+        "edge_definitions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          },
+          "description": "Graph edge definitions."
+        },
+        "from_collections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "From vertex collections for edge definition."
+        },
+        "to_collections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "To vertex collections for edge definition."
+        },
+        "from_id": {
+          "type": "string",
+          "description": "Source vertex _id for add_edge."
+        },
+        "to_id": {
+          "type": "string",
+          "description": "Target vertex _id for add_edge."
+        },
+        "attributes": {
+          "type": "object",
+          "description": "Extra edge attributes."
+        },
+        "start_vertex": {
+          "type": "string",
+          "description": "Traversal or shortest path start vertex."
+        },
+        "end_vertex": {
+          "type": "string",
+          "description": "Shortest path end vertex."
+        },
+        "edge_collections": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Traversal edge collections."
+        },
+        "direction": {
+          "type": "string",
+          "enum": [
+            "OUTBOUND",
+            "INBOUND",
+            "ANY"
+          ],
+          "default": "OUTBOUND",
+          "description": "Traversal direction."
+        },
+        "min_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1,
+          "description": "Traversal min depth."
+        },
+        "max_depth": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 1,
+          "description": "Traversal max depth."
+        },
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Traversal result limit."
+        },
+        "graph_name": {
+          "type": "string",
+          "description": "Graph name for backup/restore."
+        },
+        "input_dir": {
+          "type": "string",
+          "description": "Restore input directory."
+        },
+        "output_dir": {
+          "type": "string",
+          "description": "Backup output directory."
+        },
+        "output_file": {
+          "type": "string",
+          "description": "Named graph backup output file."
+        },
+        "graph_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Named graphs for backup_named."
+        },
+        "include_metadata": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether backup includes graph metadata."
+        },
+        "doc_limit": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Backup document limit."
+        },
+        "validate_integrity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether restore validates graph integrity."
+        },
+        "check_orphaned_edges": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether integrity check includes orphaned edges."
+        },
+        "check_constraints": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether integrity check includes constraints."
+        },
+        "return_details": {
+          "type": "boolean",
+          "description": "Whether integrity check returns details."
+        },
+        "include_degree_distribution": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether statistics include degree distribution."
+        },
+        "include_connectivity": {
+          "type": "boolean",
+          "default": true,
+          "description": "Whether statistics include connectivity."
+        },
+        "sample_size": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Statistics sample size."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "md"
+          ],
+          "default": "md",
+          "description": "Output format."
+        }
       }
     }
   },
-  "allOf": [
-    { "if": { "properties": { "action": { "const": "search" } } }, "then": { "properties": { "payload": { "required": ["keywords"] } } } },
-    { "if": { "properties": { "action": { "const": "describe" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } },
-    { "if": { "properties": { "action": { "const": "call" } } }, "then": { "properties": { "payload": { "required": ["target"] } } } }
-  ],
-  "x-tool": {
-    "name": "mcp.tool.graph",
-    "title": "MCP Tool Graph",
-    "description": "ArangoDB graph category scoped to the Graphs tag.",
-    "target": "mcp.tool.graph",
+  "$defs": {
+    "tool": {
+      "title": "MCP Tool Graph",
+      "description": "search_tools first for params. Graph: create(create named graph) list(list graphs) add_vertex_collection(add vertex collection) add_edge_definition(add edge definition) add_edge(insert edge) traverse(graph traversal) shortest_path(find shortest path) backup(backup graph) restore(restore graph) backup_named(backup all named graphs) validate_integrity(check graph integrity) statistics(graph statistics)",
+      "const": "mcp.tool.graph"
+    },
     "actions": {
-      "list":     { "handler": "categoryGraph.list",     "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Graphs-tag operation listing" },
-      "search":   { "handler": "categoryGraph.search",   "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Graphs-tag operation matches" },
-      "describe": { "handler": "categoryGraph.describe", "effect": "read",  "idempotent": true,  "openWorld": false, "evidence": "Graphs-tag operation contract" },
-      "call":     { "handler": "categoryGraph.call",     "effect": "write", "idempotent": false, "openWorld": true,  "evidence": "ArangoDB Graph operation response" }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "create": {
+          "title": "create",
+          "description": "Created graph.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "create",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/create"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "create",
+              "payload": {
+                "name": "notes_graph",
+                "edge_definitions": []
+              }
+            }
+          ]
+        },
+        "list": {
+          "title": "list",
+          "description": "Graph listing.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "list",
+              "payload": {}
+            }
+          ],
+          "readOnly": true
+        },
+        "add_vertex_collection": {
+          "title": "add_vertex_collection",
+          "description": "Added vertex collection.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "add_vertex_collection",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/add_vertex_collection"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "add_vertex_collection",
+              "payload": {
+                "graph": "notes_graph",
+                "collection": "notes"
+              }
+            }
+          ]
+        },
+        "add_edge_definition": {
+          "title": "add_edge_definition",
+          "description": "Added edge definition.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "add_edge_definition",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/add_edge_definition"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "add_edge_definition",
+              "payload": {
+                "graph": "notes_graph",
+                "edge_collection": "edges",
+                "from_collections": [
+                  "notes"
+                ],
+                "to_collections": [
+                  "notes"
+                ]
+              }
+            }
+          ]
+        },
+        "add_edge": {
+          "title": "add_edge",
+          "description": "Added edge.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "add_edge",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/add_edge"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "add_edge",
+              "payload": {
+                "graph": "notes_graph",
+                "collection": "edges",
+                "from_id": "notes/a",
+                "to_id": "notes/b"
+              }
+            }
+          ]
+        },
+        "traverse": {
+          "title": "traverse",
+          "description": "Traversal result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "traverse",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/traverse"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "traverse",
+              "payload": {
+                "graph": "notes_graph",
+                "start_vertex": "notes/a",
+                "max_depth": 2
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.graph.traverse is not migrated in master yet."
+        },
+        "shortest_path": {
+          "title": "shortest_path",
+          "description": "Shortest path result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "shortest_path",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/shortest_path"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "shortest_path",
+              "payload": {
+                "graph": "notes_graph",
+                "start_vertex": "notes/a",
+                "end_vertex": "notes/b"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.graph.shortest_path is not migrated in master yet."
+        },
+        "backup": {
+          "title": "backup",
+          "description": "Graph backup result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "backup",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/backup"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "backup",
+              "payload": {
+                "graph_name": "notes_graph",
+                "output_dir": ".backup/arango"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.graph.backup is not migrated in master yet."
+        },
+        "restore": {
+          "title": "restore",
+          "description": "Graph restore result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "restore",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/restore"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "restore",
+              "payload": {
+                "input_dir": ".backup/arango"
+              }
+            }
+          ],
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.graph.restore is not migrated in master yet."
+        },
+        "backup_named": {
+          "title": "backup_named",
+          "description": "Named graph backup result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "backup_named",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/backup_named"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "backup_named",
+              "payload": {
+                "graph_names": [
+                  "notes_graph"
+                ],
+                "output_file": "graphs.json"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.graph.backup_named is not migrated in master yet."
+        },
+        "validate_integrity": {
+          "title": "validate_integrity",
+          "description": "Graph integrity result.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "validate_integrity",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/validate_integrity"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "validate_integrity",
+              "payload": {
+                "graph": "notes_graph"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.graph.validate_integrity is not migrated in master yet."
+        },
+        "statistics": {
+          "title": "statistics",
+          "description": "Graph statistics.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.graph",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "statistics",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/statistics"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.graph",
+              "action": "statistics",
+              "payload": {
+                "graph": "notes_graph"
+              }
+            }
+          ],
+          "readOnly": true,
+          "deprecated": true,
+          "deprecationMessage": "mcp.tool.graph.statistics is not migrated in master yet."
+        }
+      }
+    },
+    "payloads": {
+      "create": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "name"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.create."
+      },
+      "list": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.list."
+      },
+      "add_vertex_collection": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph",
+          "collection"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.add_vertex_collection."
+      },
+      "add_edge_definition": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph",
+          "edge_collection",
+          "from_collections",
+          "to_collections"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.add_edge_definition."
+      },
+      "add_edge": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph",
+          "collection",
+          "from_id",
+          "to_id"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.add_edge."
+      },
+      "traverse": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph",
+          "start_vertex"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.traverse."
+      },
+      "shortest_path": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph",
+          "start_vertex",
+          "end_vertex"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.shortest_path."
+      },
+      "backup": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph_name",
+          "output_dir"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.backup."
+      },
+      "restore": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "input_dir"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.restore."
+      },
+      "backup_named": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "output_file"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.backup_named."
+      },
+      "validate_integrity": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.validate_integrity."
+      },
+      "statistics": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "graph"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Graph name for create."
+          },
+          "graph": {
+            "type": "string",
+            "description": "Graph name for graph operations."
+          },
+          "collection": {
+            "type": "string",
+            "description": "Vertex or edge collection."
+          },
+          "edge_collection": {
+            "type": "string",
+            "description": "Edge collection name."
+          },
+          "edge_definitions": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            },
+            "description": "Graph edge definitions."
+          },
+          "from_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "From vertex collections for edge definition."
+          },
+          "to_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "To vertex collections for edge definition."
+          },
+          "from_id": {
+            "type": "string",
+            "description": "Source vertex _id for add_edge."
+          },
+          "to_id": {
+            "type": "string",
+            "description": "Target vertex _id for add_edge."
+          },
+          "attributes": {
+            "type": "object",
+            "description": "Extra edge attributes."
+          },
+          "start_vertex": {
+            "type": "string",
+            "description": "Traversal or shortest path start vertex."
+          },
+          "end_vertex": {
+            "type": "string",
+            "description": "Shortest path end vertex."
+          },
+          "edge_collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Traversal edge collections."
+          },
+          "direction": {
+            "type": "string",
+            "enum": [
+              "OUTBOUND",
+              "INBOUND",
+              "ANY"
+            ],
+            "default": "OUTBOUND",
+            "description": "Traversal direction."
+          },
+          "min_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal min depth."
+          },
+          "max_depth": {
+            "type": "integer",
+            "minimum": 0,
+            "default": 1,
+            "description": "Traversal max depth."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Traversal result limit."
+          },
+          "graph_name": {
+            "type": "string",
+            "description": "Graph name for backup/restore."
+          },
+          "input_dir": {
+            "type": "string",
+            "description": "Restore input directory."
+          },
+          "output_dir": {
+            "type": "string",
+            "description": "Backup output directory."
+          },
+          "output_file": {
+            "type": "string",
+            "description": "Named graph backup output file."
+          },
+          "graph_names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Named graphs for backup_named."
+          },
+          "include_metadata": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether backup includes graph metadata."
+          },
+          "doc_limit": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Backup document limit."
+          },
+          "validate_integrity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether restore validates graph integrity."
+          },
+          "check_orphaned_edges": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes orphaned edges."
+          },
+          "check_constraints": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether integrity check includes constraints."
+          },
+          "return_details": {
+            "type": "boolean",
+            "description": "Whether integrity check returns details."
+          },
+          "include_degree_distribution": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include degree distribution."
+          },
+          "include_connectivity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Whether statistics include connectivity."
+          },
+          "sample_size": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Statistics sample size."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.graph.statistics."
+      }
     }
   }
 }

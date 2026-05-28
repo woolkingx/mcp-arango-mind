@@ -10,6 +10,7 @@ import { createArangoSurfaceHandlers } from '../src/arango-surface.mjs'
 import { createTemplateOwnerHandlers } from '../src/template-owner.mjs'
 import { createCategoryOwnerHandlers } from '../src/tool-category-owner.mjs'
 import { createMcpMetaHandlers } from '../src/mcp-meta.mjs'
+import { createMcpHelpHandlers } from '../src/mcp-help.mjs'
 import { createAtlasOwnerHandlers } from '../src/atlas-owner.mjs'
 
 const CATEGORY_DEFS = [
@@ -35,7 +36,8 @@ function buildHandlers(arangoApi, getTools = () => null) {
     ...createArangoSurfaceHandlers(arangoApi),
     ...createTemplateOwnerHandlers(arangoApi, { templatesDir }),
     ...createAtlasOwnerHandlers(arangoApi),
-    ...createMcpMetaHandlers(getTools)
+    ...createMcpMetaHandlers(getTools),
+    ...createMcpHelpHandlers(getTools)
   }
   for (const def of CATEGORY_DEFS) {
     Object.assign(handlers, createCategoryOwnerHandlers(arangoApi, def))
@@ -53,10 +55,21 @@ function buildTools() {
 }
 
 async function callCollection(tools, target, params) {
-  return await tools.callTool('mcp.tool.collection', {
-    action: 'call',
-    payload: { target, params, format: 'json' }
-  })
+  const actionByTarget = {
+    createCollection: 'create',
+    deleteCollection: 'drop',
+    createDocument: 'insert',
+    getDocument: 'find',
+    updateDocument: 'update',
+    deleteDocument: 'remove'
+  }
+  const action = actionByTarget[target]
+  if (!action) throw new Error(`test helper missing direct action for ${target}`)
+  const payload = { ...params, format: 'json' }
+  if (target === 'deleteCollection') payload.collection = params['collection-name']
+  if (target === 'createDocument') payload.document = params._body
+  if (target === 'updateDocument') payload.update = params._body
+  return await tools.callTool('mcp.tool.collection', { action, payload })
 }
 
 function assertSchemaError(result) {
@@ -144,25 +157,6 @@ describe('mcp.tool.collection: live collection schema validation', { skip: SKIP 
         key,
         _body: { extra: 'not allowed' }
       }))
-
-      assertSchemaError(await callCollection(tools, 'replaceDocument', {
-        collection: name,
-        key,
-        _body: { kind: 'note' }
-      }))
-
-      const replace = await callCollection(tools, 'replaceDocument', {
-        collection: name,
-        key,
-        returnNew: true,
-        _body: { kind: 'note', count: 3, status: 'draft' }
-      })
-      assert.notEqual(replace.structuredContent.error, true)
-      assert.deepEqual({
-        kind: replace.structuredContent.new.kind,
-        count: replace.structuredContent.new.count,
-        status: replace.structuredContent.new.status
-      }, { kind: 'note', count: 3, status: 'draft' })
 
       const del = await callCollection(tools, 'deleteDocument', { collection: name, key })
       assert.notEqual(del.structuredContent.error, true)

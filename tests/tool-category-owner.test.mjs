@@ -95,6 +95,120 @@ describe('category owner handlers', () => {
     assert.deepEqual(result, { ok: true })
   })
 
+  it('rejects notes insert with invalid runtime schema type root before dispatch', async () => {
+    const { arangoApi } = buildApi()
+    let called = false
+    arangoApi.callOperation = async () => { called = true; return {} }
+    const handlers = createCategoryOwnerHandlers(arangoApi, { name: 'collection', tags: ['Collections', 'Documents', 'Indexes'] })
+    await assert.rejects(
+      () => handlers['categoryCollection.call']({
+        target: 'createDocument',
+        params: {
+          collection: 'notes',
+          _body: {
+            title: 'Bad runtime type root',
+            content: 'This should be rejected before Arango dispatch.',
+            tags: ['schema', 'runtime', 'insert'],
+            type: ['project', 'runtime-schema'],
+            weight: 50,
+            created_at: '2026-05-24T00:00:00Z'
+          }
+        }
+      }),
+      /notes\.type\[0\].*x-first-level/
+    )
+    assert.equal(called, false)
+  })
+
+  it('rejects tags insert with invalid runtime schema before dispatch', async () => {
+    const { arangoApi } = buildApi()
+    let called = false
+    arangoApi.callOperation = async () => { called = true; return {} }
+    const handlers = createCategoryOwnerHandlers(arangoApi, { name: 'collection', tags: ['Collections', 'Documents', 'Indexes'] })
+    await assert.rejects(
+      () => handlers['categoryCollection.call']({
+        target: 'createDocument',
+        params: {
+          collection: 'tags',
+          _body: { label: '' }
+        }
+      }),
+      /runtime schema validation failed for tags/
+    )
+    assert.equal(called, false)
+  })
+
+  it('validates collection document patch bodies in partial mode', async () => {
+    const { arangoApi } = buildApi()
+    let captured = null
+    arangoApi.callOperation = async (op, args) => {
+      captured = { op, args }
+      return { ok: true }
+    }
+    const handlers = createCategoryOwnerHandlers(arangoApi, { name: 'collection', tags: ['Collections', 'Documents', 'Indexes'] })
+    const result = await handlers['categoryCollection.call']({
+      target: 'updateDocument',
+      params: {
+        collection: 'notes',
+        key: 'note-1',
+        _body: { weight: 9 }
+      }
+    })
+    assert.deepEqual(captured, {
+      op: 'updateDocument',
+      args: {
+        collection: 'notes',
+        key: 'note-1',
+        _body: { weight: 9 }
+      }
+    })
+    assert.deepEqual(result, { ok: true })
+  })
+
+  it('rejects invalid collection document patch fields before dispatch', async () => {
+    const { arangoApi } = buildApi()
+    let called = false
+    arangoApi.callOperation = async () => { called = true; return {} }
+    const handlers = createCategoryOwnerHandlers(arangoApi, { name: 'collection', tags: ['Collections', 'Documents', 'Indexes'] })
+    await assert.rejects(
+      () => handlers['categoryCollection.call']({
+        target: 'updateDocument',
+        params: {
+          collection: 'notes',
+          key: 'note-1',
+          _body: { weight: 'bad' }
+        }
+      }),
+      /runtime schema validation failed for notes/
+    )
+    assert.equal(called, false)
+  })
+
+  it('does not validate non-object document read body entries as runtime documents', async () => {
+    const { arangoApi } = buildApi()
+    let captured = null
+    arangoApi.callOperation = async (op, args) => {
+      captured = { op, args }
+      return { documents: [] }
+    }
+    const handlers = createCategoryOwnerHandlers(arangoApi, { name: 'collection', tags: ['Collections', 'Documents', 'Indexes'] })
+    const result = await handlers['categoryCollection.call']({
+      target: 'getDocuments',
+      params: {
+        collection: 'notes',
+        _body: ['note-1', 'note-2']
+      }
+    })
+    assert.deepEqual(captured, {
+      op: 'getDocuments',
+      args: {
+        collection: 'notes',
+        _body: ['note-1', 'note-2']
+      }
+    })
+    assert.deepEqual(result, { documents: [] })
+  })
+
   it('call rejects targets outside the whitelist before dispatch', async () => {
     const { arangoApi } = buildApi()
     let called = false

@@ -53,8 +53,8 @@
             <tr><td><code>toolName</code></td><td>Tools activation root</td><td>Must resolve through the active schema tree.</td></tr>
             <tr><td><code>action</code></td><td>Tool owner schema</td><td>Must be declared by the tool owner.</td></tr>
             <tr><td><code>payload</code></td><td><code>toolName + action</code> schema</td><td>Must be an object and validate against the action payload schema.</td></tr>
-            <tr><td><code>payload.target</code></td><td>Target owner</td><td>Names the large operation namespace entry when action is a small verb.</td></tr>
-            <tr><td><code>payload.params</code></td><td>Target owner</td><td>Contains operation-specific input.</td></tr>
+            <tr><td><code>payload.target</code></td><td>Action payload owner</td><td>Used only by actions whose payload naturally selects a nested target, such as <code>mcp.arango.exec</code> or <code>mcp.help.get</code>.</td></tr>
+            <tr><td><code>payload.params</code></td><td>Action payload owner</td><td>Used only when the selected target owns its own nested input, such as raw OpenAPI or template execution.</td></tr>
           </tbody>
         </table>
       </section>
@@ -70,7 +70,7 @@ internal command event
 
 owner execution
   schema = reachable tool owner schema
-  action = x-tool.actions[action]
+  action = schema.$defs.actions.properties[action]
   payload = schema-backed object</code></pre>
       </section>
 

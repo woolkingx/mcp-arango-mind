@@ -74,6 +74,7 @@ describe('Full Function Test', () => {
         const list = await core.handle({ jsonrpc: '2.0', method: 'tools/list', id: 2 })
         assert.deepEqual(list.result.tools.map(t => t.name), [
           'mcp.mcp',
+          'mcp.help',
           'mcp.arango',
           'mcp.tool.template',
           'mcp.tool.database',

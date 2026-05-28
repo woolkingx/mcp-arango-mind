@@ -1,0 +1,180 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "mcp-help.schema.json",
+  "title": "MCP Help",
+  "description": "Action help from the same schema that powers tools/list.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "action",
+    "payload"
+  ],
+  "properties": {
+    "action": {
+      "type": "string",
+      "enum": [
+        "get",
+        "list"
+      ],
+      "description": "Help operation to perform."
+    },
+    "payload": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Help request payload. Use target/action to fetch one action page.",
+      "properties": {
+        "target": {
+          "type": "string",
+          "description": "MCP tool target, such as mcp.tool.collection."
+        },
+        "action": {
+          "type": "string",
+          "description": "Action name within target."
+        },
+        "format": {
+          "type": "string",
+          "enum": [
+            "json",
+            "md"
+          ],
+          "default": "md",
+          "description": "Output format."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "tool": {
+      "title": "MCP Help",
+      "description": "Action help from the same schema that powers tools/list.",
+      "const": "mcp.help"
+    },
+    "actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "get": {
+          "title": "get",
+          "description": "Return the full schema-owned help page for one action.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "readOnly": true,
+          "properties": {
+            "target": {
+              "const": "mcp.help",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "get",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/get"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.help",
+              "action": "get",
+              "payload": {
+                "target": "mcp.tool.collection",
+                "action": "insert"
+              }
+            }
+          ]
+        },
+        "list": {
+          "title": "list",
+          "description": "List schema-owned help actions, optionally under one target.",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "readOnly": true,
+          "properties": {
+            "target": {
+              "const": "mcp.help",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.help",
+              "action": "list",
+              "payload": {
+                "target": "mcp.tool.collection"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "payloads": {
+      "get": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "action"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "MCP tool target, such as mcp.tool.collection."
+          },
+          "action": {
+            "type": "string",
+            "description": "Action name within target."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.help.get."
+      },
+      "list": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "MCP tool target, such as mcp.tool.collection."
+          },
+          "action": {
+            "type": "string",
+            "description": "Action name within target."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.help.list."
+      }
+    }
+  }
+}

@@ -1,0 +1,89 @@
+{
+  "name": "notes",
+  "collection": "notes",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": [
+      "title",
+      "content",
+      "tags",
+      "type",
+      "weight",
+      "created_at"
+    ],
+    "properties": {
+      "title": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Short title or summary."
+      },
+      "content": {
+        "type": "string",
+        "description": "Detailed experience or insight in Markdown."
+      },
+      "tags": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 3,
+        "description": "Keyword tags. At least three tags are expected: verb, object, and topic."
+      },
+      "weight": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "description": "Importance weight from 0 to 100.",
+        "default": 50
+      },
+      "type": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        },
+        "minItems": 1,
+        "x-first-level": [
+          "todo",
+          "ongoing",
+          "archived",
+          "knowledge"
+        ],
+        "description": "FS-style path: {namespace}/{object}/{property}. type[0] = namespace (4 values, enforced by x-first-level). type[1] = object (project/topic name). type[2+] = property (object attribute). Autoregressive: state transition changes type[0] only (todo -> ongoing -> archived). Example: ['ongoing', 'obus', 'design']."
+      },
+      "created_at": {
+        "type": "string",
+        "description": "Creation timestamp.",
+        "default": "auto-generated"
+      }
+    },
+    "additionalProperties": true,
+    "x-methods": {
+      "has_minimum_tags": {
+        "properties": {
+          "tags": { "minItems": 3 }
+        }
+      },
+      "has_valid_weight": {
+        "properties": {
+          "weight": { "minimum": 0, "maximum": 100 }
+        }
+      },
+      "is_high_weight": {
+        "properties": {
+          "weight": { "minimum": 50 }
+        }
+      }
+    },
+    "x-tests": {
+      "has_minimum_tags": ["min_boundary", "below_min", "empty", "valid_normal"],
+      "has_valid_weight": ["min_boundary", "max_boundary", "below_min", "above_max", "valid_normal"],
+      "is_high_weight": ["min_boundary", "below_min", "valid_normal"]
+    },
+    "x-docs": {
+      "intent": "Core knowledge unit. Each note captures one experience or insight with semantic tags for graph linking.",
+      "category": "knowledge",
+      "notes": "tags drive the entire tag graph (sync_run extracts from here). weight range [0,100] affects retrieval priority. created_at auto-generated on insert."
+    }
+  }
+}

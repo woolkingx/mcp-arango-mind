@@ -38,7 +38,7 @@ jobs:
             let d=''; process.stdin.on('data',c=>d+=c); process.stdin.on('end',()=>{
               const r=JSON.parse(d);
               const names = (r.result?.tools || []).map(t => t.name);
-              const expected = ['mcp.mcp','mcp.arango','mcp.tool.template','mcp.tool.database','mcp.tool.collection','mcp.tool.view','mcp.tool.graph','mcp.tool.admin','mcp.tool.atlas'];
+              const expected = ['mcp.mcp','mcp.help','mcp.arango','mcp.tool.template','mcp.tool.database','mcp.tool.collection','mcp.tool.view','mcp.tool.graph','mcp.tool.admin','mcp.tool.atlas'];
               if(JSON.stringify(names)!==JSON.stringify(expected)) process.exit(1);
               console.log('tools/list OK:', r.result.tools.length, 'tools');
             })"

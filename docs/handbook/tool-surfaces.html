@@ -34,7 +34,7 @@
       <h1>Tool Surfaces</h1>
       <section id="principle">
         <h2>Principle</h2>
-        <p>The MCP-visible tool name identifies the owner root. The action stays small. Large operation catalogs are routed through <code>payload.target</code> and <code>payload.params</code>.</p>
+        <p>The MCP-visible tool name identifies the owner category. The category schema directly owns its action list, event-shaped examples, payload fields, descriptions, and help page definitions under <code>$defs</code>. Raw OpenAPI remains under <code>mcp.arango</code>; local category tools expose concrete actions such as <code>insert</code>, <code>find</code>, and <code>aql_query</code> directly.</p>
       </section>
 
       <section id="target-surface">
@@ -50,26 +50,50 @@
       </section>
 
       <section id="action-budget">
-        <h2>Action Budget</h2>
-        <p>Actions are control verbs, not the full operation namespace. A catalog with dozens or hundreds of operations must not become a huge enum in the MCP tool descriptor.</p>
+        <h2>Category Actions</h2>
+        <p>For <code>mcp.tool.*</code>, actions are the category operations. The schema ref boundary is only the category file; action-specific params stay as fields on that category payload object. The help projection uses the same event shape: <code>{target, action, payload}</code>. No nested <code>oneOf</code>, <code>anyOf</code>, or target-dispatch schema language is introduced.</p>
         <pre><code>{
-  "action": "call",
+  "action": "insert",
   "payload": {
-    "target": "collection.insert",
-    "params": {}
+    "collection": "notes",
+    "document": {}
   }
 }</code></pre>
       </section>
 
-      <section id="verb-set">
-        <h2>Small Verb Set</h2>
+      <section id="schema-shape-discipline">
+        <h2>Schema Shape Discipline</h2>
+        <p>Each MCP tool's advertised <code>input_schema</code> is direct and category-owned: <code>action</code> enum, <code>payload</code> object with known fields, and a compressed one-line action list shaped like <code>mcp.tool.collection(action=insert, payload={...})</code>. Full action help is kept in the same category schema under <code>$defs.actions</code> and exposed by <code>mcp.help</code>. No top-level <code>allOf</code>, <code>oneOf</code>, <code>anyOf</code>, or <code>if/then/else</code> appears in any advertised tool schema.</p>
+        <p>Reasons:</p>
+        <ul>
+          <li>The Anthropic API rejects top-level <code>allOf/oneOf/anyOf</code> in <code>tools.*.custom.input_schema</code>; encoding conditional payload requirements there breaks tool registration.</li>
+          <li>Conditional payload requirements are runtime owner concerns. The category schema lists available fields and the action help schema lists the required subset for humans and agents.</li>
+          <li>Unmigrated actions stay out of the advertised <code>action</code> enum and <code>mcp.help list</code>. <code>mcp.help get</code> may return an explicit unavailable page for an old action, but it must not present that action as normally callable.</li>
+          <li>Rule prose, routing tips, and when-to-use guidance live in <code>mcp.help</code> or the <code>wx-arango</code> skill. MCP schema introspection is the category action/field surface, not the long-form rule book.</li>
+        </ul>
+        <p>Source-of-truth chain:</p>
         <table>
-          <thead><tr><th>Action</th><th>Meaning</th><th>Payload Owner</th></tr></thead>
+          <thead><tr><th>Layer</th><th>Owns</th><th>Carrier</th></tr></thead>
           <tbody>
-            <tr><td><code>list</code></td><td>List known targets in this surface.</td><td>surface root</td></tr>
-            <tr><td><code>search</code></td><td>Find targets by keyword, category, or capability.</td><td>surface root</td></tr>
-            <tr><td><code>describe</code></td><td>Return schema, gate, or metadata for one target.</td><td>target owner</td></tr>
-            <tr><td><code>call</code></td><td>Execute one target with target-owned params.</td><td>target owner</td></tr>
+            <tr><td>L1</td><td>Category tool entry: name and category schema ref</td><td><code>tools/schema/tools.schema.json</code> <code>$defs</code></td></tr>
+            <tr><td>L2</td><td>Category action list, event examples, payload fields, descriptions, and help pages</td><td><code>tools/schema/mcp-tool-*.schema.json</code> <code>$defs.actions</code></td></tr>
+            <tr><td>L3</td><td>Per-action dispatch + runtime validation + friendly error</td><td><code>src/*-owner.mjs</code> + <code>src/arango-surface.mjs</code></td></tr>
+            <tr><td>Skill</td><td>Long-form rules, examples, anti-patterns, query priority</td><td><code>wx-arango</code> SKILL.md (out of repo)</td></tr>
+          </tbody>
+        </table>
+        <p>Reference: async live surface plus arango note <code>55803780</code> for avoiding schema-composition overload.</p>
+      </section>
+
+      <section id="verb-set">
+        <h2>Action Set</h2>
+        <table>
+          <thead><tr><th>Tool</th><th>Action Set</th><th>Payload Owner</th></tr></thead>
+          <tbody>
+            <tr><td><code>mcp.mcp</code></td><td><code>search_tools</code>, <code>list_by_category</code>, <code>unload</code></td><td>MCP metadata owner</td></tr>
+            <tr><td><code>mcp.help</code></td><td><code>get</code>, <code>list</code></td><td>Schema-owned help projection</td></tr>
+            <tr><td><code>mcp.tool.collection</code></td><td><code>insert</code>, <code>find</code>, <code>update</code>, <code>remove</code>, batch/index/schema actions</td><td>Collection owner schema</td></tr>
+            <tr><td><code>mcp.tool.admin</code></td><td><code>aql_query</code>, <code>aql_explain</code>, <code>aql_profile</code>, <code>aql_build</code>, optimize actions</td><td>Admin owner schema</td></tr>
+            <tr><td><code>mcp.arango</code></td><td><code>search</code>, <code>exec</code>, <code>describe</code>, <code>list</code>, <code>call</code></td><td>Raw Arango OpenAPI owner</td></tr>
           </tbody>
         </table>
       </section>
@@ -79,8 +103,8 @@
         <table>
           <tr><th>Field</th><th>Value</th></tr>
           <tr><td>Owns</td><td>MCP reference metadata projection, tool catalog metadata, and small MCP-facing helpers. Data source is local config (tool catalog, help, capabilities), not ArangoDB.</td></tr>
-          <tr><td>Actions</td><td><code>list</code>, <code>search</code>, <code>describe</code>.</td></tr>
-          <tr><td>Target namespace</td><td>Owner-defined metadata keys: <code>tools</code>, <code>categories</code>, <code>capabilities</code>, <code>schema</code>. No ArangoDB target.</td></tr>
+          <tr><td>Actions</td><td><code>search_tools</code>, <code>list_by_category</code>, <code>unload</code>.</td></tr>
+          <tr><td>Target namespace</td><td>Owner-defined metadata actions. No ArangoDB target.</td></tr>
           <tr><td>Transitions</td><td>All read-only. No DB I/O.</td></tr>
           <tr><td>Forbidden</td><td>ArangoDB API dispatch, owner transition truth, MCP protocol validation (lives in <a href="interfaces.html">Interfaces</a>).</td></tr>
           <tr><td>Evidence</td><td>Metadata projection objects: <code>{matches, total_matches, keywords}</code> or category listing.</td></tr>
@@ -104,12 +128,12 @@
 
       <section id="current-runtime">
         <h2>Current Runtime Boundary</h2>
-        <p>The current code exposes all three surfaces: <code>mcp.mcp</code>, <code>mcp.arango</code>, and the seven <code>mcp.tool.*</code> categories (template, database, collection, view, graph, admin, atlas). The target surface taxonomy is fully realised.</p>
+        <p>The current code exposes all three surfaces: <code>mcp.mcp</code>, <code>mcp.help</code>, <code>mcp.arango</code>, and the seven <code>mcp.tool.*</code> categories (template, database, collection, view, graph, admin, atlas). The target surface taxonomy is fully realised.</p>
       </section>
 
       <section id="gate-surface-01">
         <h2>GATE-SURFACE-01 Surface Action Budget Holds</h2>
-        <p>A surface can add a new action only when it is a root-level control verb. Operation-specific behavior belongs in <code>payload.target</code> or a smaller tool category.</p>
+        <p>A surface can add a new action only when it is a root-level control verb for that owner. Category behavior belongs in concrete <code>action + payload</code> pairs; <code>payload.target</code> is reserved for actions whose own payload selects a nested target, such as raw OpenAPI, template execution, atlas profiles, or help lookup.</p>
       </section>
 
       <section id="chapter-checkpoint">

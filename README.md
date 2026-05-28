@@ -33,6 +33,7 @@ Large catalogs stay searchable. Stable workflows become templates. Knowledge str
 | Tool | Use |
 |---|---|
 | `mcp.mcp` | Inspect the live MCP tool catalog, categories, and surface roots. |
+| `mcp.help` | Read full schema-owned help for one tool action. |
 | `mcp.arango` | Search, describe, and execute raw ArangoDB OpenAPI operations. |
 | `mcp.tool.database` | Work with ArangoDB database lifecycle operations. |
 | `mcp.tool.collection` | Work with collections, documents, indexes, and CRUD schema gates. |
@@ -48,13 +49,26 @@ The generic ArangoDB flow is:
 mcp.arango search -> mcp.arango describe -> mcp.arango exec
 ```
 
-Category tools use the same small-action style:
+Category tools expose direct owner actions. The `tools/list` description keeps
+one compact line per action in the same shape as the real call:
 
 ```text
-list | search | describe | call
+mcp.tool.collection(action=insert, payload={"collection":"notes","document":{}})
+mcp.tool.admin(action=aql_query, payload={"query":"RETURN 1"})
 ```
 
-The target operation, template, or atlas profile lives in `payload.target`.
+Use `mcp.help` for the full schema-owned action page:
+
+```text
+mcp.help(action=get, payload={"target":"mcp.tool.collection","action":"insert"})
+```
+
+Unmigrated actions are not advertised as normal callable actions. If an older
+action name is known but not implemented in `master`, `mcp.help get` returns an
+explicit unavailable page instead of a normal payload contract.
+
+Raw OpenAPI, template, and atlas profile selection still use `payload.target`
+because those actions select a nested catalog entry.
 
 ## Quick Start
 
@@ -154,6 +168,21 @@ Run a curated template:
 }
 ```
 
+Insert a document through the collection owner:
+
+```json
+{
+  "action": "insert",
+  "payload": {
+    "collection": "notes",
+    "document": {
+      "title": "Example",
+      "content": "Schema-owned write."
+    }
+  }
+}
+```
+
 Read an atlas projection:
 
 ```json
@@ -196,7 +225,7 @@ Live ArangoDB checks use the connection from `.env` or environment variables. Te
 
 ## Project Status
 
-Current release line: `0.2.0`.
+Current release line: `0.3.0`.
 
 Runtime boundary:
 

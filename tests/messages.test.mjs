@@ -13,6 +13,7 @@ import { createArangoSurfaceHandlers } from '../src/arango-surface.mjs'
 import { createTemplateOwnerHandlers } from '../src/template-owner.mjs'
 import { createCategoryOwnerHandlers } from '../src/tool-category-owner.mjs'
 import { createMcpMetaHandlers } from '../src/mcp-meta.mjs'
+import { createMcpHelpHandlers } from '../src/mcp-help.mjs'
 import { createAtlasOwnerHandlers } from '../src/atlas-owner.mjs'
 
 const CATEGORY_DEFS = [
@@ -46,7 +47,8 @@ function setup(mockRequest) {
     ...createArangoSurfaceHandlers(arangoApi),
     ...createTemplateOwnerHandlers(arangoApi, { templatesDir: join(rootDir, 'config/templates') }),
     ...createAtlasOwnerHandlers(arangoApi),
-    ...createMcpMetaHandlers(() => toolsRef)
+    ...createMcpMetaHandlers(() => toolsRef),
+    ...createMcpHelpHandlers(() => toolsRef)
   }
   for (const def of CATEGORY_DEFS) {
     Object.assign(customHandlers, createCategoryOwnerHandlers(arangoApi, def))
@@ -64,6 +66,7 @@ describe('MCP -> tools -> Arango message bridge', () => {
     const res = await bus.send('route', validated)
     assert.deepEqual(res.result.tools.map(t => t.name), [
       'mcp.mcp',
+      'mcp.help',
       'mcp.arango',
       'mcp.tool.template',
       'mcp.tool.database',
@@ -136,7 +139,7 @@ describe('MCP -> tools -> Arango message bridge', () => {
       id: 5,
       params: {
         name: 'mcp.mcp',
-        arguments: { action: 'list', payload: { target: 'categories', format: 'json' } }
+        arguments: { action: 'list_by_category', payload: { format: 'json' } }
       }
     })
     const res = await bus.send('route', validated)

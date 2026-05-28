@@ -67,26 +67,36 @@ wc -l docs/handbook/*.html</code></pre>
         <p>Schema changes must stay under <code>mcp/</code>, <code>arango/</code>, or <code>tools/</code> according to the data shape they own.</p>
       </section>
 
+      <section id="gate-runtimeschema-01">
+        <h2>GATE-RUNTIMESCHEMA-01 Runtime Collection Schema Holds</h2>
+        <p>Runtime collection schemas under <code>config/schemas/*.json</code> own project document shape and schema extensions such as <code>x-first-level</code>. They are consumed by the schema registry and atlas projections, not treated as ArangoDB collection-schema registration templates.</p>
+        <p>The registry proof must show every valid runtime schema file is loaded by collection name, and invalid runtime schema files fail the schema2object gate instead of being silently skipped. The async migration set is <code>access_logs</code>, <code>edges</code>, <code>notes</code>, <code>tag_edges</code>, <code>tags</code>, and <code>todos</code>; master must not narrow the active set to a single collection unless the handbook explicitly retires the others.</p>
+        <p><code>notes.type</code> proof must show the runtime schema exposes the allowed first-level roots and that <code>atlas.types</code> projects those roots without inventing a separate rule. Collection write proof must show <code>mcp.tool.collection</code> applies runtime validation by collection owner boundary before Arango dispatch, without hardcoded operation-name rule ownership.</p>
+      </section>
+
       <section id="gate-surface-01">
         <h2>GATE-SURFACE-01 Surface Action Budget Holds</h2>
-        <p>MCP-visible tool surfaces keep small control actions and route large catalogs through <code>payload.target</code> and <code>payload.params</code>.</p>
+        <p>MCP-visible tool surfaces keep compressed action indexes. Category tools expose direct <code>action + payload</code> pairs; raw OpenAPI, template, atlas, and help actions use <code>payload.target</code> only when their own payload selects a nested catalog entry.</p>
       </section>
 
       <section id="gate-tools-01">
         <h2>GATE-TOOLS-01 Tool Activation Is Reachability</h2>
-        <p>New tools enter by reachable owner schemas under <code>tools/schema/tools.schema.json</code>. Removal is also a reachability change.</p>
+        <p>New tools enter by reachable owner schemas under <code>tools/schema/tools.schema.json</code>. <code>tools/list</code> and <code>mcp.help</code> may advertise only actions that are implemented or explicitly marked unavailable; schema-owned help must not present unmigrated actions as normal callable actions.</p>
       </section>
 
       <section id="gate-tool-category-01">
         <h2>GATE-TOOL-CATEGORY-01 Category Owns Its Lifecycle</h2>
         <p>Local tool categories own their data lifecycle. Template CRUD belongs to <code>mcp.tool.template</code>, not to admin metadata.</p>
-        <p><code>mcp.tool.collection</code> must keep collection document schema validation discoverable through category search and describe. Local gates prove OpenAPI payload shape; live gates prove CRUD field shape and stored data correctness through create, read, update, replace, and delete against a schema-bound collection.</p>
+        <p><code>mcp.tool.collection</code> keeps generic collection/document/index operations discoverable through category search and describe. Its collection entry applies runtime collection schemas by <code>params.collection</code> before document writes dispatch to Arango. Runtime collection schemas are proved by <a href="#gate-runtimeschema-01">GATE-RUNTIMESCHEMA-01</a>; Arango OpenAPI schema payloads remain raw database operation shapes.</p>
         <pre><code>node --test tests/tool-category-owner.test.mjs tests/arango-api.test.mjs tests/collection-schema-live.test.mjs</code></pre>
       </section>
 
       <section id="gate-atlas-01">
         <h2>GATE-ATLAS-01 Atlas Stays Read-Only</h2>
-        <p><code>mcp.tool.atlas</code> may project the <code>notes</code> and <code>edges</code> collections, topology, and readiness hints through AQL. It must reject collection overrides and roots outside <code>notes/&lt;key&gt;</code>; graph/view/index mutations stay in their owning tools.</p>
+        <p><code>mcp.tool.atlas</code> may project the <code>notes</code> and <code>edges</code> collections, type coordinates, topology, and readiness hints through AQL. It must reject collection overrides and roots outside <code>notes/&lt;key&gt;</code> for rooted graph profiles; graph/view/index mutations stay in their owning tools.</p>
+        <p><code>atlas.types</code> is the only atlas target for type-coordinate views. Table, suggestion, and tree output are selected by params such as <code>mode</code>, <code>query</code>, <code>tags</code>, <code>root</code>, <code>depth</code>, and <code>examples</code>, not by adding separate atlas targets.</p>
+        <p>The atlas AQL proof must include a stdio JSON-RPC fixture replay through <code>server.mjs</code>. Owner-level mocks may prove query construction and envelopes, but they do not prove AQL parser validity, bind variable compatibility, or MCP transport composition.</p>
+        <pre><code>node --test tests/atlas-owner.test.mjs tests/stdio-e2e.test.mjs</code></pre>
       </section>
 
       <section id="gate-envelope-01">

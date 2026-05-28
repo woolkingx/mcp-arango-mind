@@ -81,6 +81,7 @@ describe('MCP Schema Conformance', () => {
     const tree = new ObjectTree(res.result, mcpDef('ListToolsResult'))
     assert.deepEqual(tree.tools.map(t => t.name), [
       'mcp.mcp',
+      'mcp.help',
       'mcp.arango',
       'mcp.tool.template',
       'mcp.tool.database',

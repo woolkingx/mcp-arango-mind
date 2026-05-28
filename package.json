@@ -1,6 +1,6 @@
 {
   "name": "mcp-arango-mind",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "description": "Schema-driven ArangoDB MCP server with OpenAPI search/exec, AQL templates, and knowledge-atlas projections.",
   "main": "server.mjs",

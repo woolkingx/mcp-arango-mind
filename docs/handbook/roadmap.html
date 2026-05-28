@@ -36,7 +36,7 @@
       <h1>Roadmap</h1>
       <section id="current-boundary">
         <h2>Current Boundary</h2>
-        <p>The current runtime has landed the split surface: <code>mcp.mcp</code>, <code>mcp.arango</code>, and <code>mcp.tool.*</code>. The roadmap now focuses on deepening templates, atlas projections, graph/view readiness, and live ArangoDB proof coverage without widening the MCP action surface.</p>
+        <p>The current runtime has landed the split surface: <code>mcp.mcp</code>, <code>mcp.help</code>, <code>mcp.arango</code>, and <code>mcp.tool.*</code>. The roadmap now focuses on deepening templates, atlas projections, graph/view readiness, and live ArangoDB proof coverage without widening the MCP action surface.</p>
         <pre><code>interface owner
   -&gt; surface root
   -&gt; tool owners
@@ -87,7 +87,7 @@
         <h2>Async Migration Order</h2>
         <ol>
           <li>Declare the owner schema first.</li>
-          <li>Keep actions small and move operation names into <code>payload.target</code>.</li>
+          <li>Keep category actions direct as <code>action + payload</code>. Use <code>payload.target</code> only for raw OpenAPI, template, atlas, or help actions that select a nested catalog entry.</li>
           <li>Add fixtures and proof gates.</li>
           <li>Move operator code behind the owner transition.</li>
           <li>Expose through MCP/CLI as interface projection.</li>

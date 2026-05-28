@@ -72,7 +72,18 @@ export function createArangoSurfaceHandlers(arangoApi) {
   }
 
   async function call(payload) {
+    if (typeof payload.target !== 'string' || !payload.target) {
+      throw new Error('mcp.arango call missing required "target"')
+    }
     return await arangoApi.callOperation(payload.target, payload.params || {})
+  }
+
+  function dispatch(payload, action) {
+    if (action === 'list') return list(payload)
+    if (action === 'search') return search(payload)
+    if (action === 'describe') return describe(payload)
+    if (action === 'exec' || action === 'call') return call(payload)
+    throw new Error(`unknown mcp.arango action: ${action}`)
   }
 
   return {
@@ -80,6 +91,7 @@ export function createArangoSurfaceHandlers(arangoApi) {
     'arangoSurface.search': search,
     'arangoSurface.describe': describe,
     'arangoSurface.call': call,
-    'arangoSurface.exec': call
+    'arangoSurface.exec': call,
+    'arangoSurface.dispatch': dispatch
   }
 }

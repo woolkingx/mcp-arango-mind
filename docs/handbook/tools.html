@@ -42,14 +42,15 @@
         <table>
           <thead><tr><th>Tool</th><th>Actions</th><th>Owner Type</th><th>Schema</th></tr></thead>
           <tbody>
-            <tr><td><code>mcp.mcp</code></td><td><code>list</code>, <code>search</code>, <code>describe</code></td><td>MCP reference metadata owner (<a href="tool-surfaces.html#module-spec-mcp">spec</a>)</td><td><a href="../../tools/schema/mcp-mcp.schema.json">tools/schema/mcp-mcp.schema.json</a></td></tr>
+            <tr><td><code>mcp.mcp</code></td><td><code>search_tools</code>, <code>list_by_category</code>, <code>unload</code></td><td>MCP reference metadata owner (<a href="tool-surfaces.html#module-spec-mcp">spec</a>)</td><td><a href="../../tools/schema/mcp-mcp.schema.json">tools/schema/mcp-mcp.schema.json</a></td></tr>
+            <tr><td><code>mcp.help</code></td><td><code>get</code>, <code>list</code></td><td>Schema-owned action help projection (<a href="tool-surfaces.html#verb-set">spec</a>)</td><td><a href="../../tools/schema/mcp-help.schema.json">tools/schema/mcp-help.schema.json</a></td></tr>
             <tr><td><code>mcp.arango</code></td><td><code>search</code>, <code>exec</code>, <code>describe</code>, <code>list</code>, <code>call</code></td><td>OpenAPI search/exec owner (<a href="tool-surfaces.html#module-spec-arango">spec</a>)</td><td><a href="../../tools/schema/mcp-arango.schema.json">tools/schema/mcp-arango.schema.json</a></td></tr>
             <tr><td><code>mcp.tool.template</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Template catalog owner (<a href="tool-categories.html#module-spec-template">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-template.schema.json">tools/schema/mcp-tool-template.schema.json</a></td></tr>
-            <tr><td><code>mcp.tool.database</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Database category owner (<a href="tool-categories.html#module-spec-database">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-database.schema.json">tools/schema/mcp-tool-database.schema.json</a></td></tr>
-            <tr><td><code>mcp.tool.collection</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Collection category owner (<a href="tool-categories.html#module-spec-collection">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-collection.schema.json">tools/schema/mcp-tool-collection.schema.json</a></td></tr>
-            <tr><td><code>mcp.tool.view</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>View category owner (<a href="tool-categories.html#module-spec-view">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-view.schema.json">tools/schema/mcp-tool-view.schema.json</a></td></tr>
-            <tr><td><code>mcp.tool.graph</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Graph category owner (<a href="tool-categories.html#module-spec-graph">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-graph.schema.json">tools/schema/mcp-tool-graph.schema.json</a></td></tr>
-            <tr><td><code>mcp.tool.admin</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Admin category owner (<a href="tool-categories.html#module-spec-admin">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-admin.schema.json">tools/schema/mcp-tool-admin.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.database</code></td><td><code>list</code>, <code>get_active</code>, <code>get_focused</code></td><td>Database category owner (<a href="tool-categories.html#module-spec-database">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-database.schema.json">tools/schema/mcp-tool-database.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.collection</code></td><td><code>insert</code>, <code>find</code>, <code>update</code>, <code>remove</code>, <code>get_schema</code>, <code>validate_document</code>, index/schema actions</td><td>Collection category owner (<a href="tool-categories.html#module-spec-collection">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-collection.schema.json">tools/schema/mcp-tool-collection.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.view</code></td><td><code>create</code>, <code>drop</code>, <code>list</code>, <code>get</code>, <code>update</code>, <code>search</code></td><td>View category owner (<a href="tool-categories.html#module-spec-view">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-view.schema.json">tools/schema/mcp-tool-view.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.graph</code></td><td><code>create</code>, <code>list</code>, <code>add_vertex_collection</code>, <code>add_edge_definition</code>, <code>add_edge</code></td><td>Graph category owner (<a href="tool-categories.html#module-spec-graph">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-graph.schema.json">tools/schema/mcp-tool-graph.schema.json</a></td></tr>
+            <tr><td><code>mcp.tool.admin</code></td><td><code>aql_query</code>, <code>aql_explain</code>, <code>aql_profile</code></td><td>Admin category owner (<a href="tool-categories.html#module-spec-admin">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-admin.schema.json">tools/schema/mcp-tool-admin.schema.json</a></td></tr>
             <tr><td><code>mcp.tool.atlas</code></td><td><code>list</code>, <code>search</code>, <code>describe</code>, <code>call</code></td><td>Atlas projection owner (<a href="tool-categories.html#module-spec-atlas">spec</a>)</td><td><a href="../../tools/schema/mcp-tool-atlas.schema.json">tools/schema/mcp-tool-atlas.schema.json</a></td></tr>
           </tbody>
         </table>
@@ -60,7 +61,7 @@
         <table>
           <thead><tr><th>Target</th><th>Owning Chapter</th><th>Status</th></tr></thead>
           <tbody>
-            <tr><td><code>mcp.mcp</code>, <code>mcp.arango</code>, <code>mcp.tool.*</code></td><td><a href="tool-surfaces.html">Tool Surfaces</a></td><td>handbook target</td></tr>
+            <tr><td><code>mcp.mcp</code>, <code>mcp.help</code>, <code>mcp.arango</code>, <code>mcp.tool.*</code></td><td><a href="tool-surfaces.html">Tool Surfaces</a></td><td>handbook target</td></tr>
             <tr><td><code>mcp.tool.database</code> through <code>mcp.tool.atlas</code></td><td><a href="tool-categories.html">Tool Categories</a></td><td>handbook target</td></tr>
             <tr><td><code>mcp/</code>, <code>arango/</code>, <code>tools/</code></td><td><a href="schema-roots.html">Schema Roots</a></td><td>schema root map</td></tr>
           </tbody>
@@ -70,23 +71,23 @@
       <section id="owner-contract">
         <h2>Owner Contract</h2>
         <pre><code>tools/schema/tools.schema.json
-  -&gt; $ref tool owner schema
+  -&gt; $defs category ref
      -&gt; tool id
-     -&gt; actions
-     -&gt; object payload shape
-     -&gt; effect and evidence metadata
-     -&gt; allowed ArangoDB API operation ids</code></pre>
+     -&gt; action enum
+     -&gt; $defs.actions event examples
+     -&gt; $defs.payloads object payload schemas
+     -&gt; schema-owned help projection</code></pre>
       </section>
 
       <section id="runtime-path">
         <h2>Runtime Path</h2>
         <pre><code>tools/list
   -&gt; resolve reachable tool schemas
-  -&gt; project MCP Tool list
+  -&gt; project MCP Tool list with one-line call-shaped action summaries
 
 tools/call
   -&gt; validate { action, payload }
-  -&gt; resolve action operationId or custom handler
+  -&gt; resolve action owner handler
   -&gt; project payload to the owned executor
   -&gt; format result</code></pre>
       </section>

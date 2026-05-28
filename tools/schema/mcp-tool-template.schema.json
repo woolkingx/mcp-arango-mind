@@ -5,11 +5,19 @@
   "description": "Template catalog discovery, lifecycle, and execution.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["action", "payload"],
+  "required": [
+    "action",
+    "payload"
+  ],
   "properties": {
     "action": {
       "type": "string",
-      "enum": ["list", "search", "describe", "call"],
+      "enum": [
+        "list",
+        "search",
+        "describe",
+        "call"
+      ],
       "description": "Small control verb for the template surface."
     },
     "payload": {
@@ -26,7 +34,9 @@
         },
         "keywords": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "minItems": 1,
           "description": "Search keywords for search."
         },
@@ -43,60 +53,348 @@
         },
         "format": {
           "type": "string",
-          "enum": ["json", "md"],
+          "enum": [
+            "json",
+            "md"
+          ],
           "default": "md",
           "description": "Output format."
         }
       }
     }
   },
-  "allOf": [
-    {
-      "if": { "properties": { "action": { "const": "search" } } },
-      "then": { "properties": { "payload": { "required": ["keywords"] } } }
+  "$defs": {
+    "tool": {
+      "title": "MCP Template Owner",
+      "description": "Template catalog discovery, lifecycle, and execution.",
+      "const": "mcp.tool.template"
     },
-    {
-      "if": { "properties": { "action": { "const": "describe" } } },
-      "then": { "properties": { "payload": { "required": ["target"] } } }
-    },
-    {
-      "if": { "properties": { "action": { "const": "call" } } },
-      "then": { "properties": { "payload": { "required": ["target"] } } }
-    }
-  ],
-  "x-tool": {
-    "name": "mcp.tool.template",
-    "title": "MCP Template Owner",
-    "description": "Template catalog discovery, lifecycle, and execution.",
-    "target": "mcp.tool.template",
     "actions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "list": {
+          "title": "list",
+          "description": "Template catalog id listing",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.template",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "list",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/list"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.template",
+              "action": "list",
+              "payload": {
+                "limit": 20
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "search": {
+          "title": "search",
+          "description": "Template catalog keyword matches",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.template",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "search",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/search"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.template",
+              "action": "search",
+              "payload": {
+                "keywords": [
+                  "memory"
+                ],
+                "limit": 5
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "describe": {
+          "title": "describe",
+          "description": "Template catalog entry",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.template",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "describe",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/describe"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.template",
+              "action": "describe",
+              "payload": {
+                "target": "memory.view"
+              }
+            }
+          ],
+          "readOnly": true
+        },
+        "call": {
+          "title": "call",
+          "description": "Template execution result, catalog mutation, or validate report",
+          "type": "object",
+          "required": [
+            "target",
+            "action",
+            "payload"
+          ],
+          "properties": {
+            "target": {
+              "const": "mcp.tool.template",
+              "description": "MCP tool target."
+            },
+            "action": {
+              "const": "call",
+              "description": "Action name."
+            },
+            "payload": {
+              "$ref": "#/$defs/payloads/call"
+            }
+          },
+          "examples": [
+            {
+              "target": "mcp.tool.template",
+              "action": "call",
+              "payload": {
+                "target": "memory.view",
+                "params": {
+                  "query": "schema",
+                  "limit": 5
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "payloads": {
       "list": {
-        "handler": "templateOwner.list",
-        "effect": "read",
-        "idempotent": true,
-        "openWorld": false,
-        "evidence": "Template catalog id listing"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Template id '<category>.<name>' for describe and call (execute), or meta.create|meta.update|meta.remove|meta.validate for catalog ops."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template bind vars for execute, or catalog op arguments for meta targets."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for search."
+          },
+          "category": {
+            "type": "string",
+            "description": "Optional category filter for list."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum templates returned by list and search."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.template.list."
       },
       "search": {
-        "handler": "templateOwner.search",
-        "effect": "read",
-        "idempotent": true,
-        "openWorld": false,
-        "evidence": "Template catalog keyword matches"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "keywords"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Template id '<category>.<name>' for describe and call (execute), or meta.create|meta.update|meta.remove|meta.validate for catalog ops."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template bind vars for execute, or catalog op arguments for meta targets."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for search."
+          },
+          "category": {
+            "type": "string",
+            "description": "Optional category filter for list."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum templates returned by list and search."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.template.search."
       },
       "describe": {
-        "handler": "templateOwner.describe",
-        "effect": "read",
-        "idempotent": true,
-        "openWorld": false,
-        "evidence": "Template catalog entry"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Template id '<category>.<name>' for describe and call (execute), or meta.create|meta.update|meta.remove|meta.validate for catalog ops."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template bind vars for execute, or catalog op arguments for meta targets."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for search."
+          },
+          "category": {
+            "type": "string",
+            "description": "Optional category filter for list."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum templates returned by list and search."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.template.describe."
       },
       "call": {
-        "handler": "templateOwner.call",
-        "effect": "write",
-        "idempotent": false,
-        "openWorld": true,
-        "evidence": "Template execution result, catalog mutation, or validate report"
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target"
+        ],
+        "properties": {
+          "target": {
+            "type": "string",
+            "description": "Template id '<category>.<name>' for describe and call (execute), or meta.create|meta.update|meta.remove|meta.validate for catalog ops."
+          },
+          "params": {
+            "type": "object",
+            "description": "Template bind vars for execute, or catalog op arguments for meta targets."
+          },
+          "keywords": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1,
+            "description": "Search keywords for search."
+          },
+          "category": {
+            "type": "string",
+            "description": "Optional category filter for list."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500,
+            "default": 100,
+            "description": "Maximum templates returned by list and search."
+          },
+          "format": {
+            "type": "string",
+            "enum": [
+              "json",
+              "md"
+            ],
+            "default": "md",
+            "description": "Output format."
+          }
+        },
+        "description": "Payload for mcp.tool.template.call."
       }
     }
   }

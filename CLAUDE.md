@@ -24,10 +24,10 @@ The handbook owns architecture, boundaries, acceptance gates, and known risks. `
 ## Current Status
 
 - Date: 2026-05-23.
-- Current runtime tools: `mcp.mcp`, `mcp.arango`, `mcp.tool.template`, `mcp.tool.database`, `mcp.tool.collection`, `mcp.tool.view`, `mcp.tool.graph`, `mcp.tool.admin`, `mcp.tool.atlas`.
+- Current runtime tools: `mcp.mcp`, `mcp.help`, `mcp.arango`, `mcp.tool.template`, `mcp.tool.database`, `mcp.tool.collection`, `mcp.tool.view`, `mcp.tool.graph`, `mcp.tool.admin`, `mcp.tool.atlas`.
 - Current master topology: MCP interface -> current tool runtime -> ArangoDB API owner.
 - Handbook target topology: MCP interface -> surface root -> tool owners -> ArangoDB API owner.
-- Target MCP-visible surfaces are documented as `mcp.mcp`, `mcp.arango`, and `mcp.tool.*`.
+- Target MCP-visible surfaces are documented as `mcp.mcp`, `mcp.help`, `mcp.arango`, and `mcp.tool.*`.
 - Tool categories are documented as `mcp.tool.database`, `mcp.tool.collection`, `mcp.tool.view`, `mcp.tool.graph`, `mcp.tool.admin`, `mcp.tool.template`, and `mcp.tool.atlas`.
 - Target surface split (`mcp.mcp`, `mcp.arango`, `mcp.tool.*`) is fully landed across schema, runtime, tests, and docs.
 - Five `mcp.tool.*` category owners share `src/tool-category-owner.mjs` with per-category OpenAPI tag whitelists; template and atlas keep dedicated handlers.
@@ -66,8 +66,6 @@ The target surface taxonomy is now realised. Pending items live in handbook risk
 
 ## Current Decisions
 
-- 2026-05-23: `mcp.tool.template` activates with `list`/`search`/`describe`/`call` and `payload.target` = `<category>.<name>` for execute or `meta.create|meta.update|meta.remove|meta.validate` for catalog ops; catalog source is `config/templates/*.json`; execute dispatches `createAqlQueryCursor`.
-- 2026-05-23: Five `mcp.tool.*` category owners activate via `createCategoryOwnerHandlers(arangoApi, {name, tags})`; whitelist is built from OpenAPI tag intersection; `payload.target` = operationId is gated by the whitelist before dispatch.
-- 2026-05-23: `arango_mcp` is retired; `mcp.mcp` takes its place with `list`/`search`/`describe` over the live tool catalog (targets: `tools`, `categories`, `surfaces`, or specific tool name); data source is the live `toolList` snapshot via closure.
 - 2026-05-24: `mcp.tool.atlas` activates read-only `atlas.xxx` profiles over notes/edges; graph and view optimizations are reported as readiness hints, not mutated by atlas.
 - 2026-05-24: `mcp.arango` primary flow is `search` then `exec`; `call` remains as a compatibility alias because hundreds of OpenAPI operations should not become hundreds of MCP tools.
+- 2026-05-28: Tool schemas use direct category refs only: `tools.schema.json` holds category refs in `$defs`, and each category schema owns its concrete `action` enum plus `$defs.actions` event examples, payload fields, descriptions, and help pages. Advertised schemas stay compressed; `mcp.help` expands the same schema-owned action definitions. Top-level `allOf`/`oneOf`/`anyOf`/`if`/`then` are forbidden in advertised schemas; conditional required fields are enforced by runtime owners.

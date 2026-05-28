@@ -37,7 +37,7 @@
       <section id="summary">
         <h2>Summary</h2>
         <p><strong>mcp-arango-mind</strong> is a schema-driven MCP server for ArangoDB. The durable topology is MCP interface to surface root to tool owners to ArangoDB API owner. Custom behavior enters as tool owners, not as hidden protocol or Arango API logic.</p>
-        <p>The current runtime exposes <code>mcp.mcp</code>, <code>mcp.arango</code>, <code>mcp.tool.template</code>, <code>mcp.tool.atlas</code>, and the five <code>mcp.tool.*</code> API categories (database, collection, view, graph, admin). The target surface split into <code>mcp.mcp</code>, <code>mcp.arango</code>, and <code>mcp.tool.*</code> chapters keeps large API and custom catalogs from becoming oversized action lists.</p>
+        <p>The current runtime exposes <code>mcp.mcp</code>, <code>mcp.help</code>, <code>mcp.arango</code>, <code>mcp.tool.template</code>, <code>mcp.tool.atlas</code>, and the five <code>mcp.tool.*</code> API categories (database, collection, view, graph, admin). The target surface split into metadata, schema-owned help, raw OpenAPI, and direct category actions keeps large API and custom catalogs from becoming oversized action lists.</p>
       </section>
 
       <section id="usage-entry">
@@ -66,8 +66,8 @@ npm test</code></pre>
   -&gt; <span class="interface">server.mjs / transport / protocol</span>
   -&gt; <span class="runtime">tools schema tree</span>
        tools/schema/tools.schema.json
-       current: mcp.mcp, mcp.arango, mcp.tool.template, mcp.tool.atlas, mcp.tool.{database,collection,view,graph,admin}
-       target: mcp.mcp, mcp.arango, mcp.tool.*
+       current: mcp.mcp, mcp.help, mcp.arango, mcp.tool.template, mcp.tool.atlas, mcp.tool.{database,collection,view,graph,admin}
+       target: mcp.mcp, mcp.help, mcp.arango, mcp.tool.*
        command envelope: toolName/action/payload
   -&gt; <span class="schema">ArangoDB OpenAPI owner</span>
        arango/schema/arango.openapi.schema.json
@@ -106,6 +106,7 @@ npm test</code></pre>
           <tr><td><a href="../../CHANGELOG.md">CHANGELOG.md</a></td><td>Public change history.</td></tr>
           <tr><td><a href="../../mcp/schema/mcp.schema.json">mcp/schema/</a></td><td>MCP API data owner.</td></tr>
           <tr><td><a href="../../tools/schema/tools.schema.json">tools/schema/</a></td><td>Tool owner activation root.</td></tr>
+          <tr><td><code>config/schemas/</code></td><td>Runtime collection schema owner, not ArangoDB registration templates.</td></tr>
           <tr><td><a href="tool-surfaces.html">tool-surfaces.html</a></td><td>Target MCP-visible surface taxonomy.</td></tr>
           <tr><td><a href="../../arango/schema/arango.openapi.schema.json">arango/schema/</a></td><td>ArangoDB API shape owner.</td></tr>
           <tr><td><a href="../../tests/tools.test.mjs">tests/</a></td><td>Proof gates and regressions.</td></tr>
@@ -122,6 +123,7 @@ npm test</code></pre>
           <li><a href="artifact-roles.html#gate-artifact-01">GATE-ARTIFACT-01</a>: claim has one artifact owner.</li>
           <li><a href="topology.html#gate-topology-01">GATE-TOPOLOGY-01</a>: MCP, tools, and Arango API topology holds.</li>
           <li><a href="schema-roots.html#gate-schema-root-01">GATE-SCHEMA-ROOT-01</a>: root schema ownership holds.</li>
+          <li><a href="acceptance-gates.html#gate-runtimeschema-01">GATE-RUNTIMESCHEMA-01</a>: runtime collection schemas stay runtime-owned.</li>
           <li><a href="tool-surfaces.html#gate-surface-01">GATE-SURFACE-01</a>: surface action budget holds.</li>
           <li><a href="tools.html#gate-tools-01">GATE-TOOLS-01</a>: tool activation is reachability.</li>
           <li><a href="tool-categories.html#gate-tool-category-01">GATE-TOOL-CATEGORY-01</a>: category owns its lifecycle.</li>

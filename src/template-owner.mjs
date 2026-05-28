@@ -140,10 +140,19 @@ export function createTemplateOwnerHandlers(arangoApi, { templatesDir }) {
     return { template: template.id, count: results.length, results }
   }
 
+  function dispatch(payload, action) {
+    if (action === 'list') return list(payload)
+    if (action === 'search') return search(payload)
+    if (action === 'describe') return describe(payload)
+    if (action === 'call') return call(payload)
+    throw new Error(`unknown template action: ${action}`)
+  }
+
   return {
     'templateOwner.list': list,
     'templateOwner.search': search,
     'templateOwner.describe': describe,
-    'templateOwner.call': call
+    'templateOwner.call': call,
+    'templateOwner.dispatch': dispatch
   }
 }

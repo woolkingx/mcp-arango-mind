@@ -82,9 +82,13 @@ function arrayToMd(arr) {
   const hasName = activeKeys.includes('name')
   const hasUrl = activeKeys.includes('url')
 
-  // >6 active columns or long text → list format
+  // >6 active columns, long text, or nested composite fields -> list format
   if (activeKeys.length > 6 || arr.some(obj =>
-    activeKeys.some(k => String(obj[k] ?? '').length > 120 || String(obj[k] ?? '').includes('\n'))
+    activeKeys.some(k =>
+      hasNestedComposite(obj[k]) ||
+      String(obj[k] ?? '').length > 120 ||
+      String(obj[k] ?? '').includes('\n')
+    )
   )) {
     return arrayToList(arr, activeKeys)
   }
@@ -140,8 +144,11 @@ function arrayToList(arr, activeKeys) {
       const v = obj[k]
       if (v === null || v === undefined) continue
       if (k === 'title' || k === 'name' || k === 'link' || k === 'url') continue
-      if (Array.isArray(v)) {
+      if (Array.isArray(v) && !hasNestedComposite(v)) {
         lines.push(`- **${k}**: ${v.join(', ')}`)
+      } else if (Array.isArray(v) || (typeof v === 'object' && v !== null)) {
+        lines.push(`- **${k}**:`)
+        lines.push(indentBlock(json2md(v), '  '))
       } else {
         lines.push(`- **${k}**: ${formatValue(k, v)}`)
       }
@@ -159,6 +166,7 @@ function mdLink(text, url) {
 
 function formatValue(key, v) {
   if (v === null || v === undefined) return ''
+  if (Array.isArray(v) || typeof v === 'object') return JSON.stringify(v)
   // Shorten ISO dates to YYYY-MM-DD HH:MM
   if (key === 'published' && typeof v === 'string' && v.includes('T')) {
     return v.replace(/T(\d{2}:\d{2}):\d{2}\.\d+Z$/, ' $1Z').replace(/T(\d{2}:\d{2}):\d{2}Z$/, ' $1Z')
@@ -171,7 +179,22 @@ function formatValue(key, v) {
 
 function cellValue(v) {
   if (v === null || v === undefined) return ''
-  if (Array.isArray(v)) return v.join(', ')
+  if (Array.isArray(v)) {
+    if (hasNestedComposite(v)) return JSON.stringify(v)
+    return v.join(', ')
+  }
   if (typeof v === 'object') return JSON.stringify(v)
   return String(v).replace(/\|/g, '\\|').replace(/\n/g, ' ')
+}
+
+function hasNestedComposite(v) {
+  if (Array.isArray(v)) return v.some(item => typeof item === 'object' && item !== null)
+  return typeof v === 'object' && v !== null
+}
+
+function indentBlock(text, prefix) {
+  return String(text)
+    .split('\n')
+    .map(line => line ? `${prefix}${line}` : line)
+    .join('\n')
 }

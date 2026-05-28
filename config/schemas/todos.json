@@ -1,0 +1,85 @@
+{
+  "name": "todos",
+  "collection": "todos",
+  "schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "type": "object",
+    "required": [
+      "content",
+      "priority",
+      "tags",
+      "status",
+      "created_at",
+      "project"
+    ],
+    "properties": {
+      "content": {
+        "type": "string",
+        "minLength": 1,
+        "description": "Task content."
+      },
+      "priority": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "default": 5,
+        "description": "Priority from 1 to 10."
+      },
+      "tags": {
+        "type": "array",
+        "items": { "type": "string" },
+        "description": "Tag list."
+      },
+      "status": {
+        "type": "string",
+        "enum": ["pending", "done"],
+        "default": "pending",
+        "description": "Task status."
+      },
+      "created_at": {
+        "type": "string",
+        "description": "Creation timestamp in ISO 8601 format."
+      },
+      "updated_at": {
+        "type": "string",
+        "description": "Update timestamp in ISO 8601 format."
+      },
+      "project": {
+        "type": "string",
+        "description": "Project name, such as _user or mindnext-hooks."
+      },
+      "parent": {
+        "type": "string",
+        "description": "Optional parent task _key."
+      }
+    },
+    "additionalProperties": true,
+    "x-methods": {
+      "is_pending": {
+        "properties": {
+          "status": { "const": "pending" }
+        }
+      },
+      "is_done": {
+        "properties": {
+          "status": { "const": "done" }
+        }
+      },
+      "is_high_priority": {
+        "properties": {
+          "priority": { "minimum": 8 }
+        }
+      }
+    },
+    "x-tests": {
+      "is_pending": ["valid_normal", "valid_edge"],
+      "is_done": ["valid_normal", "valid_edge"],
+      "is_high_priority": ["min_boundary", "below_min", "valid_normal"]
+    },
+    "x-docs": {
+      "intent": "Task management unit. Tracks work items with priority and project grouping.",
+      "category": "productivity",
+      "notes": "Status transitions: pending -> done. Priority 1-10, where higher is more urgent. Project groups tasks by context."
+    }
+  }
+}
